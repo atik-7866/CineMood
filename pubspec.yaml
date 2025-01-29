@@ -1,0 +1,46 @@
+name: registeration
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none'  # Set to 'none' if you don’t want to publish to pub.dev
+
+# The following defines the version and build number for your application.
+version: 1.0.0+1  # Version and build number for release
+
+# Environment specifies the version of Dart SDK you're targeting.
+environment:
+  sdk: ^3.6.0  # Change the version according to the latest stable Dart version.
+
+# Dependencies specify other packages your app requires.
+dependencies:
+  flutter:
+    sdk: flutter  # Flutter SDK dependency
+
+  cupertino_icons: ^1.0.8  # Cupertino iOS style icons for iOS apps
+  firebase_auth: ^5.4.0  # Firebase Authentication for user login/register
+  firebase_core: ^3.10.0  # Firebase Core to initialize Firebase
+  # shared_preferences: ^2.3.5  # (Uncomment if you use SharedPreferences for local storage)
+
+# Development dependencies specify packages used only in development or testing.
+dev_dependencies:
+  flutter_test:
+    sdk: flutter  # Flutter testing library
+  flutter_lints: ^5.0.0  # Linter to help maintain good coding practices
+
+# Flutter-specific options, including assets, fonts, and Material Design setup.
+flutter:
+
+  uses-material-design: true  # Enables Material Icons and Design
+
+  # Assets section for images, you can use them if needed in the future.
+  # assets:
+  #   - images/a_dot_burr.jpeg
+  #   - images/a_dot_ham.jpeg
+
+  # Fonts section for custom fonts (if needed).
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic

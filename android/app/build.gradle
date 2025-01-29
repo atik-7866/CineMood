@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application' // Apply this first
+    id 'kotlin-android' // Kotlin plugin
+    id 'com.google.gms.google-services' // Google services plugin
+    id 'dev.flutter.flutter-gradle-plugin' // Make sure this is included for Flutter
+}
+
+android {
+    namespace = "com.example.registeration"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+        applicationId = "com.example.registeration"
+        minSdk = 23
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.debug // Use appropriate signing config for release
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    implementation 'com.google.firebase:firebase-analytics'
+}
+
+apply plugin: 'com.google.gms.google-services' // Make sure this is placed last

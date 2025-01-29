@@ -1,0 +1,35 @@
+// This is the top-level build script for your project (typically located at the root of the project)
+buildscript {
+    repositories {
+        google()   // Google's Maven repository for Android-related dependencies
+        mavenCentral()  // Maven Central repository for other dependencies
+    }
+    dependencies {
+        // Classpath for the Android build tools
+        classpath 'com.android.tools.build:gradle:8.8.0'  // Make sure this version matches the one that works for your Flutter/Android version
+
+        // Google services for Firebase or other Google services integration
+        classpath 'com.google.gms:google-services:4.4.2'  // Keep this version updated as needed
+    }
+}
+
+allprojects {
+    repositories {
+        google()   // Use Google repositories for dependencies throughout the project
+        mavenCentral()  // Add Maven Central for third-party dependencies
+    }
+}
+
+rootProject.buildDir = "../build"  // Configure the build directory to be outside the current directory
+
+subprojects {
+    // Set the build directories for subprojects
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+    // Ensure subprojects (like app) depend on the ":app" project module
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    // Registers a task to delete the build directory when running 'gradle clean'
+    delete rootProject.buildDir
+}
