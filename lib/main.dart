@@ -62,7 +62,8 @@ class HomePage extends StatelessWidget {
   }
 }
 
-enum MenuAction { logout }
+// enum MenuAction { logout }
+enum MenuAction { logout, changePassword }
 
 class NotesView extends StatefulWidget {
   const NotesView({super.key});
@@ -93,10 +94,24 @@ class _NotesViewState extends State<NotesView> {
                         .pushNamedAndRemoveUntil(loginRoute, (_) => false);
                   }
                   break;
+                case MenuAction.changePassword:
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user != null && user.email != null) {
+                    await FirebaseAuth.instance.sendPasswordResetEmail(email: user.email!);
+                    showPasswordResetDialog(context);
+                  }
+                  break;
               }
             },
             itemBuilder: (context) {
               return const [
+                PopupMenuItem<MenuAction>(
+                  value: MenuAction.changePassword,
+                  child: Text(
+                    "Change Password",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
                 PopupMenuItem<MenuAction>(
                   value: MenuAction.logout,
                   child: Text(
@@ -106,7 +121,8 @@ class _NotesViewState extends State<NotesView> {
                 ),
               ];
             },
-          ),
+          )
+
         ],
       ),
       body: Padding(
@@ -202,4 +218,26 @@ Future<bool> showLogOutDialog(BuildContext context) {
       );
     },
   ).then((value) => value ?? false);
+}
+
+// ***************************
+void showPasswordResetDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text("Password Reset"),
+        content: const Text(
+            "A password reset email has been sent to your registered email address. Please check your inbox."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      );
+    },
+  );
 }
