@@ -18,9 +18,10 @@ dependencies:
 
   cupertino_icons: ^1.0.8  # Cupertino iOS style icons for iOS apps
   firebase_auth: ^5.4.0  # Firebase Authentication for user login/register
-  firebase_core: ^3.10.0  # Firebase Core to initialize Firebase
-  # shared_preferences: ^2.3.5  # (Uncomment if you use SharedPreferences for local storage)
-
+  firebase_core: ^3.10.0 # Firebase Core to initialize Firebase
+#  firebase_storage: ^12.4.1
+#  image_picker: ^1.1.2
+#  shared_preferences: ^2.5.1
 # Development dependencies specify packages used only in development or testing.
 dev_dependencies:
   flutter_test:

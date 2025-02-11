@@ -35,6 +35,8 @@ void main() async {
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -75,6 +77,8 @@ class NotesView extends StatefulWidget {
 class _NotesViewState extends State<NotesView> {
   @override
   Widget build(BuildContext context) {
+    // final user = FirebaseAuth.instance.currentUser;
+    // final String profilePicUrl = user?.photoURL ?? 'https://images.pexels.com/photos/1107717/pexels-photo-1107717.jpeg?cs=srgb&dl=pexels-fotios-photos-1107717.jpg&fm=jpg';
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -90,6 +94,7 @@ class _NotesViewState extends State<NotesView> {
                   final shouldLogout = await showLogOutDialog(context);
                   if (shouldLogout) {
                     await FirebaseAuth.instance.signOut();
+
                     Navigator.of(context)
                         .pushNamedAndRemoveUntil(loginRoute, (_) => false);
                   }
@@ -121,7 +126,11 @@ class _NotesViewState extends State<NotesView> {
                 ),
               ];
             },
-          )
+          ),
+          // CircleAvatar(
+          //   radius: 20,
+          //   backgroundImage: NetworkImage(profilePicUrl),
+          // ),
 
         ],
       ),

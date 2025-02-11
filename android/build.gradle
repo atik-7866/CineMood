@@ -6,8 +6,8 @@ buildscript {
     }
     dependencies {
         // Classpath for the Android build tools
-        classpath 'com.android.tools.build:gradle:8.8.0'  // Make sure this version matches the one that works for your Flutter/Android version
-
+        classpath 'com.android.tools.build:gradle:8.8.0'
+//        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.0"  // Add Kotlin Gradle Plugin
         // Google services for Firebase or other Google services integration
         classpath 'com.google.gms:google-services:4.4.2'  // Keep this version updated as needed
     }
