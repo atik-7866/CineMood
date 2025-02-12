@@ -6,6 +6,8 @@ import 'package:registeration/firebase_options.dart';
 import 'package:registeration/views/LoginView.dart';
 import 'package:registeration/views/RegisterationView.dart';
 import 'dart:developer' as devtools show log;
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 import 'package:registeration/views/VerifyEmailView.dart';
 
@@ -35,8 +37,6 @@ void main() async {
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -64,7 +64,6 @@ class HomePage extends StatelessWidget {
   }
 }
 
-// enum MenuAction { logout }
 enum MenuAction { logout, changePassword }
 
 class NotesView extends StatefulWidget {
@@ -75,10 +74,59 @@ class NotesView extends StatefulWidget {
 }
 
 class _NotesViewState extends State<NotesView> {
+  List movies = [];
+  bool isLoading = true;
+  String errorMessage = "";
+
+  @override
+  void initState() {
+    super.initState();
+    fetchMovies();
+  }
+
+  Future<void> fetchMovies() async {
+    const String url = "https://imdb236.p.rapidapi.com/imdb/india/upcoming";
+    const Map<String, String> headers = {
+      "X-RapidAPI-Host": "imdb236.p.rapidapi.com",
+      "X-RapidAPI-Key": "222cdddb17msh20db10d9fbd80b0p19f20ajsnc7e766c3fb2d",
+    };
+
+    try {
+      final response = await http.get(Uri.parse(url), headers: headers);
+
+      if (response.statusCode == 200) {
+        final decodedData = json.decode(response.body);
+
+        print("Decoded JSON: $decodedData"); // Debugging line
+
+        if (decodedData is List) {  // ✅ Ensure it's a list
+          setState(() {
+            movies = List<Map<String, dynamic>>.from(decodedData);  // ✅ Cast it properly
+            isLoading = false;
+            errorMessage = movies.isEmpty ? "No movies found." : "";
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+            errorMessage = "Unexpected response format.";
+          });
+        }
+      } else {
+        setState(() {
+          isLoading = false;
+          errorMessage = "Failed to load movies: ${response.statusCode}";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMessage = "Error fetching movies: $e";
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // final user = FirebaseAuth.instance.currentUser;
-    // final String profilePicUrl = user?.photoURL ?? 'https://images.pexels.com/photos/1107717/pexels-photo-1107717.jpeg?cs=srgb&dl=pexels-fotios-photos-1107717.jpg&fm=jpg';
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -94,9 +142,7 @@ class _NotesViewState extends State<NotesView> {
                   final shouldLogout = await showLogOutDialog(context);
                   if (shouldLogout) {
                     await FirebaseAuth.instance.signOut();
-
-                    Navigator.of(context)
-                        .pushNamedAndRemoveUntil(loginRoute, (_) => false);
+                    Navigator.of(context).pushNamedAndRemoveUntil(loginRoute, (_) => false);
                   }
                   break;
                 case MenuAction.changePassword:
@@ -112,89 +158,64 @@ class _NotesViewState extends State<NotesView> {
               return const [
                 PopupMenuItem<MenuAction>(
                   value: MenuAction.changePassword,
-                  child: Text(
-                    "Change Password",
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  child: Text("Change Password", style: TextStyle(fontSize: 16)),
                 ),
                 PopupMenuItem<MenuAction>(
                   value: MenuAction.logout,
-                  child: Text(
-                    "Logout",
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  child: Text("Logout", style: TextStyle(fontSize: 16)),
                 ),
               ];
             },
           ),
-          // CircleAvatar(
-          //   radius: 20,
-          //   backgroundImage: NetworkImage(profilePicUrl),
-          // ),
-
         ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: Center(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Welcome Section
-              const Text(
-                "Welcome to Your Notes!",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Text(
+              "Welcome to Your Notes!",
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Here you can manage all your notes effectively. Start adding, editing, or removing notes to keep everything organized.",
+              style: TextStyle(fontSize: 16, color: Colors.black54),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 30),
 
-              const Text(
-                "Here you can manage all your notes effectively. Start adding, editing, or removing notes to keep everything organized.",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black54,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 30),
+            // Movie Section
+            const Text(
+              "Trending Movies",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
 
-              // Placeholder for Notes Content
-              Expanded(
-                child: Center(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20.0),
-                    decoration: BoxDecoration(
-                      color: Colors.blueGrey.shade50,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.blueGrey.shade100,
-                        width: 1,
-                      ),
-                    ),
-                    child: const Text(
-                      "Your notes will appear here.\nStart by adding some notes!",
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.black87,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+            if (isLoading)
+              const CircularProgressIndicator()
+            else if (errorMessage.isNotEmpty)
+              Text(errorMessage, style: const TextStyle(color: Colors.red, fontSize: 16))
+            else
+              SizedBox(
+                height: 200,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: movies.length,
+                  itemBuilder: (context, index) {
+                    final movie = movies[index];
+                    return MovieCard(movie: movie);
+                  },
                 ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Action to add a new note
-          // Example: Navigate to add note page
         },
         backgroundColor: Theme.of(context).primaryColor,
         child: const Icon(Icons.add),
@@ -202,6 +223,69 @@ class _NotesViewState extends State<NotesView> {
     );
   }
 }
+
+// Movie Card Widget
+// impo
+
+class MovieCard extends StatelessWidget {
+  final Map<String, dynamic> movie;
+
+  const MovieCard({super.key, required this.movie});
+
+  @override
+  Widget build(BuildContext context) {
+    // Debugging: Print the movie data
+    print("Movie Data: $movie");
+
+    // Extract movie details safely
+    String title = movie["primaryTitle"]?.toString() ?? "Unknown Title";
+    String? imageUrl;
+
+    // Check if primaryImage is a map before accessing ["url"]
+    if (movie["primaryImage"] is Map && movie["primaryImage"]?["url"] is String) {
+      imageUrl = movie["primaryImage"]["url"];
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      child: SizedBox(
+        width: 150,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Movie Image with error handling
+            imageUrl != null
+                ? Image.network(
+              imageUrl,
+              height: 100,
+              width: 150,
+              fit: BoxFit.cover,
+            )
+                : Container(
+              height: 100,
+              width: 150,
+              color: Colors.grey[300],
+              child: const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+            ),
+
+            // Movie Title
+            Padding(
+              padding: const EdgeInsets.all(5),
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 
 Future<bool> showLogOutDialog(BuildContext context) {
   return showDialog<bool>(
@@ -229,7 +313,6 @@ Future<bool> showLogOutDialog(BuildContext context) {
   ).then((value) => value ?? false);
 }
 
-// ***************************
 void showPasswordResetDialog(BuildContext context) {
   showDialog(
     context: context,
