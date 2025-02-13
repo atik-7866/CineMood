@@ -7,6 +7,7 @@ import 'package:registeration/views/LoginView.dart';
 import 'package:registeration/views/RegisterationView.dart';
 import 'dart:developer' as devtools show log;
 import 'package:http/http.dart' as http;
+import 'package:registeration/views/SearchScreen.dart';
 import 'dart:convert';
 
 import 'package:registeration/views/VerifyEmailView.dart';
@@ -83,7 +84,6 @@ class _NotesViewState extends State<NotesView> {
     super.initState();
     fetchMovies();
   }
-
   Future<void> fetchMovies() async {
     const String url = "https://imdb236.p.rapidapi.com/imdb/india/upcoming";
     const Map<String, String> headers = {
@@ -135,6 +135,16 @@ class _NotesViewState extends State<NotesView> {
         ),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              // Navigate to SearchScreen when clicked
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SearchScreen()),
+              );
+            },
+          ),
           PopupMenuButton<MenuAction>(
             onSelected: (value) async {
               switch (value) {
@@ -174,18 +184,18 @@ class _NotesViewState extends State<NotesView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              "Welcome to Your Notes!",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              "Here you can manage all your notes effectively. Start adding, editing, or removing notes to keep everything organized.",
-              style: TextStyle(fontSize: 16, color: Colors.black54),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 30),
+            // const Text(
+            //   "Welcome to Your Notes!",
+            //   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+            //   textAlign: TextAlign.center,
+            // ),
+            // const SizedBox(height: 20),
+            // const Text(
+            //   "Here you can manage all your notes effectively. Start adding, editing, or removing notes to keep everything organized.",
+            //   style: TextStyle(fontSize: 16, color: Colors.black54),
+            //   textAlign: TextAlign.center,
+            // ),
+            // const SizedBox(height: 30),
 
             // Movie Section
             const Text(
@@ -241,9 +251,9 @@ class MovieCard extends StatelessWidget {
     String title = movie["primaryTitle"]?.toString() ?? "Unknown Title";
     String? imageUrl;
 
-    // Check if primaryImage is a map before accessing ["url"]
-    if (movie["primaryImage"] is Map && movie["primaryImage"]?["url"] is String) {
-      imageUrl = movie["primaryImage"]["url"];
+    // Fetch primaryImage correctly
+    if (movie["primaryImage"] is String) {
+      imageUrl = movie["primaryImage"];
     }
 
     return Card(
@@ -254,12 +264,24 @@ class MovieCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Movie Image with error handling
-            imageUrl != null
+            imageUrl != null && imageUrl.isNotEmpty
                 ? Image.network(
               imageUrl,
-              height: 100,
+              height: 170,
               width: 150,
               fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const Center(child: CircularProgressIndicator());
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: 100,
+                  width: 150,
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+                );
+              },
             )
                 : Container(
               height: 100,
@@ -285,7 +307,6 @@ class MovieCard extends StatelessWidget {
     );
   }
 }
-
 
 Future<bool> showLogOutDialog(BuildContext context) {
   return showDialog<bool>(
