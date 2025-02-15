@@ -12,6 +12,7 @@ import 'package:registeration/views/SearchScreen.dart';
 import 'dart:convert';
 
 import 'package:registeration/views/VerifyEmailView.dart';
+import 'package:registeration/views/WishlistPage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -146,6 +147,16 @@ class _NotesViewState extends State<NotesView> {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.favorite),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const WishlistPage()),
+              );
+            },
+          ),
+
           PopupMenuButton<MenuAction>(
             onSelected: (value) async {
               switch (value) {

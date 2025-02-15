@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MoviePage extends StatefulWidget {
   final String imdbId;
@@ -16,11 +17,13 @@ class _MoviePageState extends State<MoviePage> {
   Map<String, dynamic>? movieData;
   bool isLoading = true;
   String errorMessage = "";
+  bool isFavorite = false;
 
   @override
   void initState() {
     super.initState();
     fetchMovieDetails();
+    checkIfFavorite();
   }
 
   Future<void> fetchMovieDetails() async {
@@ -57,17 +60,46 @@ class _MoviePageState extends State<MoviePage> {
     }
   }
 
-  // import 'package:url_launcher/url_launcher.dart';
-
   Future<void> _watchTrailer() async {
-    final Uri trailerUrl = Uri.parse("https://www.imdb.com/title/${widget.imdbId}/videogallery/");
+    final String trailerUrl = "https://www.imdb.com/title/${widget.imdbId}/videogallery/";
 
-    if (!await launchUrl(trailerUrl, mode: LaunchMode.externalApplication)) {
-      throw 'Could not launch $trailerUrl';
+    if (await canLaunchUrl(Uri.parse(trailerUrl))) {
+      await launchUrl(Uri.parse(trailerUrl), mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Could not launch trailer link."))
+      );
     }
   }
 
+  Future<void> checkIfFavorite() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> wishlist = prefs.getStringList('wishlist') ?? [];
 
+    setState(() {
+      isFavorite = wishlist.contains(widget.imdbId);
+    });
+  }
+
+  Future<void> toggleWishlist() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> wishlist = prefs.getStringList('wishlist') ?? [];
+
+    setState(() {
+      if (isFavorite) {
+        wishlist.remove(widget.imdbId);
+      } else {
+        wishlist.add(widget.imdbId);
+      }
+      isFavorite = !isFavorite;
+    });
+
+    await prefs.setStringList('wishlist', wishlist);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isFavorite ? "Added to Wishlist!" : "Removed from Wishlist!"))
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,8 +115,7 @@ class _MoviePageState extends State<MoviePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: movieData?["Poster"] != null &&
-                  movieData?["Poster"] != "N/A"
+              child: movieData?["Poster"] != null && movieData?["Poster"] != "N/A"
                   ? Image.network(
                 movieData!["Poster"],
                 height: 300,
@@ -109,10 +140,21 @@ class _MoviePageState extends State<MoviePage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _watchTrailer,
-        child: const Icon(Icons.play_arrow),
-        tooltip: "Watch Trailer",
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: _watchTrailer,
+            child: const Icon(Icons.play_arrow),
+            tooltip: "Watch Trailer",
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            onPressed: toggleWishlist,
+            child: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+            tooltip: isFavorite ? "Remove from Wishlist" : "Add to Wishlist",
+          ),
+        ],
       ),
     );
   }
