@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:registeration/constants/routes.dart';
 import 'package:registeration/firebase_options.dart';
 import 'package:registeration/views/LoginView.dart';
+import 'package:registeration/views/MovieDetailPage.dart';
 import 'package:registeration/views/RegisterationView.dart';
 import 'dart:developer' as devtools show log;
 import 'package:http/http.dart' as http;
@@ -184,18 +185,6 @@ class _NotesViewState extends State<NotesView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // const Text(
-            //   "Welcome to Your Notes!",
-            //   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
-            //   textAlign: TextAlign.center,
-            // ),
-            // const SizedBox(height: 20),
-            // const Text(
-            //   "Here you can manage all your notes effectively. Start adding, editing, or removing notes to keep everything organized.",
-            //   style: TextStyle(fontSize: 16, color: Colors.black54),
-            //   textAlign: TextAlign.center,
-            // ),
-            // const SizedBox(height: 30),
 
             // Movie Section
             const Text(
@@ -234,9 +223,9 @@ class _NotesViewState extends State<NotesView> {
   }
 }
 
+
 // Movie Card Widget
 // impo
-
 class MovieCard extends StatelessWidget {
   final Map<String, dynamic> movie;
 
@@ -244,64 +233,71 @@ class MovieCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Debugging: Print the movie data
     print("Movie Data: $movie");
 
-    // Extract movie details safely
     String title = movie["primaryTitle"]?.toString() ?? "Unknown Title";
     String? imageUrl;
+    String? imdbId = movie["id"]?.toString(); // Extract IMDB ID
 
-    // Fetch primaryImage correctly
     if (movie["primaryImage"] is String) {
       imageUrl = movie["primaryImage"];
     }
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      child: SizedBox(
-        width: 150,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Movie Image with error handling
-            imageUrl != null && imageUrl.isNotEmpty
-                ? Image.network(
-              imageUrl,
-              height: 170,
-              width: 150,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return const Center(child: CircularProgressIndicator());
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 100,
-                  width: 150,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
-                );
-              },
-            )
-                : Container(
-              height: 100,
-              width: 150,
-              color: Colors.grey[300],
-              child: const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+    return GestureDetector(
+      onTap: () {
+        if (imdbId != null && imdbId.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MoviePage(imdbId: imdbId),
             ),
-
-            // Movie Title
-            Padding(
-              padding: const EdgeInsets.all(5),
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+          );
+        }
+      },
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 10),
+        child: SizedBox(
+          width: 150,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              imageUrl != null && imageUrl.isNotEmpty
+                  ? Image.network(
+                imageUrl,
+                height: 170,
+                width: 150,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const Center(child: CircularProgressIndicator());
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 100,
+                    width: 150,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+                  );
+                },
+              )
+                  : Container(
+                height: 100,
+                width: 150,
+                color: Colors.grey[300],
+                child: const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(5),
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

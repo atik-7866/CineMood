@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:registeration/views/MovieDetailPage.dart';
+import 'package:registeration/views/MovieDetailScreen.dart';
 
 class SearchScreen extends StatefulWidget {
   @override
   _SearchScreenState createState() => _SearchScreenState();
 }
+final String apiKey = "e28238e7";
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
@@ -13,8 +16,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isLoading = false;
   String _errorMessage = "";
 
-  // API Key (Replace with your key)
-  final String apiKey = "6162b991";
+  // final String apiKey = "e28238e7";
 
   // Function to fetch movies
   Future<void> fetchMovies(String query) async {
@@ -104,9 +106,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   final movie = _movies[index];
 
                   return GestureDetector(
-                    onTap: () {
-                      // Navigate to Movie Details Screen (Implement separately)
-                    },
+                    onTap: () => navigateToMovieDetail(context, movie["imdbID"]),
                     child: Card(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -164,3 +164,14 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 }
+
+void navigateToMovieDetail(BuildContext context, String imdbID) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => MovieDetailScreen(imdbID: imdbID),
+    ),
+  );
+}
+
+

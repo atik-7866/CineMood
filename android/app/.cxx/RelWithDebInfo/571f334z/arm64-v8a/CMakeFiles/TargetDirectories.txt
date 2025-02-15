@@ -1,0 +1,2 @@
+C:/Users/HP/Documents/Flutterpro/Registeration/android/app/.cxx/RelWithDebInfo/571f334z/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Users/HP/Documents/Flutterpro/Registeration/android/app/.cxx/RelWithDebInfo/571f334z/arm64-v8a/CMakeFiles/rebuild_cache.dir
