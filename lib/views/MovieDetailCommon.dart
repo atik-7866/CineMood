@@ -4,20 +4,24 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class MoviePage extends StatefulWidget {
-  final String imdbId;
+class MovieDetailScreen extends StatefulWidget {
+  final String imdbID;
+  final bool isFromRapidApi;
 
-  const MoviePage({super.key, required this.imdbId});
+  const MovieDetailScreen({super.key, required this.imdbID, this.isFromRapidApi = false});
 
   @override
-  State<MoviePage> createState() => _MoviePageState();
+  _MovieDetailScreenState createState() => _MovieDetailScreenState();
 }
 
-class _MoviePageState extends State<MoviePage> {
+class _MovieDetailScreenState extends State<MovieDetailScreen> {
   Map<String, dynamic>? movieData;
   bool isLoading = true;
   String errorMessage = "";
   bool isFavorite = false;
+
+  final String omdbApiKey = "e28238e7"; // Replace with your OMDb API key
+  final String rapidApiKey = "222cdddb17msh20db10d9fbd80b0p19f20ajsnc7e766c3fb2d"; // Replace with your RapidAPI key
 
   @override
   void initState() {
@@ -27,15 +31,26 @@ class _MoviePageState extends State<MoviePage> {
   }
 
   Future<void> fetchMovieDetails() async {
-    final String url = "https://www.omdbapi.com/?apikey=e28238e7&i=${widget.imdbId}";
+    String url;
+    Map<String, String> headers = {};
+
+    // if (widget.isFromRapidApi) {
+    //   url = "https://imdb236.p.rapidapi.com/imdb/india/upcoming";
+    //   headers = {
+    //     "X-RapidAPI-Key": rapidApiKey,
+    //     "X-RapidAPI-Host": "imdb236.p.rapidapi.com"
+    //   };
+    // } else {
+      url = "https://www.omdbapi.com/?apikey=$omdbApiKey&i=${widget.imdbID}";
+    // }
 
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(Uri.parse(url), headers: headers);
 
       if (response.statusCode == 200) {
         final decodedData = json.decode(response.body);
 
-        if (decodedData["Response"] == "True") {
+        if (decodedData["Response"] == "True" || widget.isFromRapidApi) {
           setState(() {
             movieData = decodedData;
             isLoading = false;
@@ -61,14 +76,12 @@ class _MoviePageState extends State<MoviePage> {
   }
 
   Future<void> _watchTrailer() async {
-    final String trailerUrl = "https://www.imdb.com/title/${widget.imdbId}/videogallery/";
-
+    final String trailerUrl = "https://www.imdb.com/title/${widget.imdbID}/videogallery/";
     if (await canLaunchUrl(Uri.parse(trailerUrl))) {
       await launchUrl(Uri.parse(trailerUrl), mode: LaunchMode.externalApplication);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Could not launch trailer link."))
-      );
+          const SnackBar(content: Text("Could not launch trailer link.")));
     }
   }
 
@@ -77,7 +90,7 @@ class _MoviePageState extends State<MoviePage> {
     List<String> wishlist = prefs.getStringList('wishlist') ?? [];
 
     setState(() {
-      isFavorite = wishlist.contains(widget.imdbId);
+      isFavorite = wishlist.contains(widget.imdbID);
     });
   }
 
@@ -87,9 +100,9 @@ class _MoviePageState extends State<MoviePage> {
 
     setState(() {
       if (isFavorite) {
-        wishlist.remove(widget.imdbId);
+        wishlist.remove(widget.imdbID);
       } else {
-        wishlist.add(widget.imdbId);
+        wishlist.add(widget.imdbID);
       }
       isFavorite = !isFavorite;
     });
@@ -97,8 +110,7 @@ class _MoviePageState extends State<MoviePage> {
     await prefs.setStringList('wishlist', wishlist);
 
     ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(isFavorite ? "Added to Wishlist!" : "Removed from Wishlist!"))
-    );
+        SnackBar(content: Text(isFavorite ? "Added to Wishlist!" : "Removed from Wishlist!")));
   }
 
   @override

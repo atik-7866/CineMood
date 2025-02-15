@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:registeration/views/MovieDetailPage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-// import 'movie_page.dart';
+import 'package:registeration/views/MovieDetailCommon.dart';
+ import 'package:shared_preferences/shared_preferences.dart';
 
 class WishlistPage extends StatefulWidget {
   const WishlistPage({super.key});
@@ -58,7 +57,7 @@ class _WishlistPageState extends State<WishlistPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => MoviePage(imdbId: imdbId),
+                  builder: (context) => MovieDetailScreen(imdbID: imdbId, isFromRapidApi: false),
                 ),
               );
             },

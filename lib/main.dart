@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:registeration/constants/routes.dart';
 import 'package:registeration/firebase_options.dart';
 import 'package:registeration/views/LoginView.dart';
-import 'package:registeration/views/MovieDetailPage.dart';
-import 'package:registeration/views/RegisterationView.dart';
+import 'package:registeration/views/MovieDetailCommon.dart';
+ import 'package:registeration/views/RegisterationView.dart';
 import 'dart:developer' as devtools show log;
 import 'package:http/http.dart' as http;
 import 'package:registeration/views/SearchScreen.dart';
@@ -260,7 +260,7 @@ class MovieCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => MoviePage(imdbId: imdbId),
+              builder: (context) => MovieDetailScreen(imdbID: imdbId, isFromRapidApi: true),
             ),
           );
         }
