@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 class MoviePage extends StatefulWidget {
   final String imdbId;
@@ -56,6 +57,18 @@ class _MoviePageState extends State<MoviePage> {
     }
   }
 
+  // import 'package:url_launcher/url_launcher.dart';
+
+  Future<void> _watchTrailer() async {
+    final Uri trailerUrl = Uri.parse("https://www.imdb.com/title/${widget.imdbId}/videogallery/");
+
+    if (!await launchUrl(trailerUrl, mode: LaunchMode.externalApplication)) {
+      throw 'Could not launch $trailerUrl';
+    }
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -80,8 +93,7 @@ class _MoviePageState extends State<MoviePage> {
                 height: 300,
                 width: double.infinity,
                 color: Colors.grey[300],
-                child: const Icon(Icons.image_not_supported,
-                    size: 50, color: Colors.grey),
+                child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
               ),
             ),
             const SizedBox(height: 20),
@@ -96,6 +108,11 @@ class _MoviePageState extends State<MoviePage> {
             Text("Plot: ${movieData?["Plot"] ?? "No plot available"}"),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _watchTrailer,
+        child: const Icon(Icons.play_arrow),
+        tooltip: "Watch Trailer",
       ),
     );
   }
