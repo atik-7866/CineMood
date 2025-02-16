@@ -69,6 +69,7 @@ class HomePage extends StatelessWidget {
 
 enum MenuAction { logout, changePassword }
 
+
 class NotesView extends StatefulWidget {
   const NotesView({super.key});
 
@@ -77,17 +78,40 @@ class NotesView extends StatefulWidget {
 }
 
 class _NotesViewState extends State<NotesView> {
-  List movies = [];
-  bool isLoading = true;
-  String errorMessage = "";
+  List<Map<String, dynamic>> boxOfficeMovies = [];
+  List<Map<String, dynamic>> trendingMovies = [];
+  List<Map<String, dynamic>> topMovies = [];
+  bool isLoadingBoxOffice = true;
+  bool isLoadingTrending = true;
+  bool isLoadingTop = true;
+  String errorBoxOffice = "";
+  String errorTrending = "";
+  String errorTop = "";
 
   @override
   void initState() {
     super.initState();
-    fetchMovies();
+    fetchBoxOfficeMovies();
+    fetchTrendingMovies();
+    fetchTopMovies();
   }
-  Future<void> fetchMovies() async {
-    const String url = "https://imdb236.p.rapidapi.com/imdb/india/upcoming";
+
+  Future<void> fetchBoxOfficeMovies() async {
+    const String url = "https://imdb236.p.rapidapi.com/imdb/top-box-office";
+    await fetchMovies(url, category: "boxOffice");
+  }
+
+  Future<void> fetchTrendingMovies() async {
+    const String url = "https://imdb236.p.rapidapi.com/imdb/most-popular-movies";
+    await fetchMovies(url, category: "trending");
+  }
+
+  Future<void> fetchTopMovies() async {
+    const String url = "https://imdb236.p.rapidapi.com/imdb/top250-movies";
+    await fetchMovies(url, category: "top");
+  }
+
+  Future<void> fetchMovies(String url, {required String category}) async {
     const Map<String, String> headers = {
       "X-RapidAPI-Host": "imdb236.p.rapidapi.com",
       "X-RapidAPI-Key": "222cdddb17msh20db10d9fbd80b0p19f20ajsnc7e766c3fb2d",
@@ -95,34 +119,39 @@ class _NotesViewState extends State<NotesView> {
 
     try {
       final response = await http.get(Uri.parse(url), headers: headers);
-
       if (response.statusCode == 200) {
         final decodedData = json.decode(response.body);
 
-        print("Decoded JSON: $decodedData"); // Debugging line
-
-        if (decodedData is List) {  // ✅ Ensure it's a list
+        if (decodedData is List) {
           setState(() {
-            movies = List<Map<String, dynamic>>.from(decodedData);  // ✅ Cast it properly
-            isLoading = false;
-            errorMessage = movies.isEmpty ? "No movies found." : "";
-          });
-        } else {
-          setState(() {
-            isLoading = false;
-            errorMessage = "Unexpected response format.";
+            if (category == "boxOffice") {
+              boxOfficeMovies = List<Map<String, dynamic>>.from(decodedData);
+              isLoadingBoxOffice = false;
+              errorBoxOffice = boxOfficeMovies.isEmpty ? "No box office movies found." : "";
+            } else if (category == "trending") {
+              trendingMovies = List<Map<String, dynamic>>.from(decodedData);
+              isLoadingTrending = false;
+              errorTrending = trendingMovies.isEmpty ? "No trending movies found." : "";
+            } else {
+              topMovies = List<Map<String, dynamic>>.from(decodedData);
+              isLoadingTop = false;
+              errorTop = topMovies.isEmpty ? "No top movies found." : "";
+            }
           });
         }
-      } else {
-        setState(() {
-          isLoading = false;
-          errorMessage = "Failed to load movies: ${response.statusCode}";
-        });
       }
     } catch (e) {
       setState(() {
-        isLoading = false;
-        errorMessage = "Error fetching movies: $e";
+        if (category == "boxOffice") {
+          isLoadingBoxOffice = false;
+          errorBoxOffice = "Error fetching box office movies: $e";
+        } else if (category == "trending") {
+          isLoadingTrending = false;
+          errorTrending = "Error fetching trending movies: $e";
+        } else {
+          isLoadingTop = false;
+          errorTop = "Error fetching top movies: $e";
+        }
       });
     }
   }
@@ -193,50 +222,232 @@ class _NotesViewState extends State<NotesView> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-
-            // Movie Section
-            const Text(
-              "Trending Movies",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-
-            if (isLoading)
-              const CircularProgressIndicator()
-            else if (errorMessage.isNotEmpty)
-              Text(errorMessage, style: const TextStyle(color: Colors.red, fontSize: 16))
-            else
-              SizedBox(
-                height: 200,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: movies.length,
-                  itemBuilder: (context, index) {
-                    final movie = movies[index];
-                    return MovieCard(movie: movie);
-                  },
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (isLoadingBoxOffice)
+                const CircularProgressIndicator()
+              else if (errorBoxOffice.isNotEmpty)
+                Text(errorBoxOffice, style: const TextStyle(color: Colors.red, fontSize: 16))
+              else
+                SizedBox(
+                  height: 250,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: boxOfficeMovies.length,
+                    itemBuilder: (context, index) {
+                      final movie = boxOfficeMovies[index];
+                      return BoxOfficeMovieCard(movie: movie);
+                    },
+                  ),
                 ),
+              const SizedBox(height: 20),
+              const Text(
+                "Trending Movies",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
-          ],
+              const SizedBox(height: 10),
+              if (isLoadingTrending)
+                const CircularProgressIndicator()
+              else if (errorTrending.isNotEmpty)
+                Text(errorTrending, style: const TextStyle(color: Colors.red, fontSize: 16))
+              else
+                SizedBox(
+                  height: 220,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: trendingMovies.length,
+                    itemBuilder: (context, index) {
+                      final movie = trendingMovies[index];
+                      return MovieCard(movie: movie);
+                    },
+                  ),
+                ),
+              const SizedBox(height: 20),
+              const Text(
+                "Top 250 Movies",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              if (isLoadingTop)
+                const CircularProgressIndicator()
+              else if (errorTop.isNotEmpty)
+                Text(errorTop, style: const TextStyle(color: Colors.red, fontSize: 12))
+              else
+                SizedBox(
+                  height: 220,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: topMovies.length,
+                    itemBuilder: (context, index) {
+                      final movie = topMovies[index];
+                      return MovieCard(movie: movie);
+                    },
+                  ),
+                ),
+            ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Action to add a new note
-        },
-        backgroundColor: Theme.of(context).primaryColor,
-        child: const Icon(Icons.add),
       ),
     );
   }
 }
 
 
+
+class BoxOfficeMovieCard extends StatelessWidget {
+  final Map<String, dynamic> movie;
+
+  const BoxOfficeMovieCard({super.key, required this.movie});
+
+  @override
+  Widget build(BuildContext context) {
+    print("Box Office Movie Data: $movie");
+
+    String title = movie["primaryTitle"]?.toString() ?? "Unknown Title";
+    String? imageUrl = movie["primaryImage"] is String ? movie["primaryImage"] : null;
+    String? imdbId = movie["id"]?.toString();
+
+    // Get Box Office Collection (assuming it's stored as a number in "boxOffice")
+    int? boxOffice = movie["boxOffice"] is int ? movie["boxOffice"] : null;
+    String boxOfficeDisplay = boxOffice != null ? "\$${boxOffice.toString()}" : "";
+    String approxBoxOffice = boxOffice != null ? _formatApproximate(boxOffice) : "";
+
+    return GestureDetector(
+      onTap: () {
+        if (imdbId != null && imdbId.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MovieDetailScreen(imdbID: imdbId),
+            ),
+          );
+        }
+      },
+      child: Container(
+        width: 150,
+        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              spreadRadius: 2,
+              offset: const Offset(2, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: imageUrl != null && imageUrl.isNotEmpty
+                  ? Image.network(
+                imageUrl,
+                width: 150,
+                height: 220,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const Center(child: CircularProgressIndicator());
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 220,
+                    width: 150,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+                  );
+                },
+              )
+                  : Container(
+                height: 220,
+                width: 150,
+                color: Colors.grey[300],
+                child: const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+              ),
+            ),
+            Container(
+              width: 150,
+              height: 220,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.7),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+            if (boxOffice != null)
+              Positioned(
+                top: 10,
+                left: 10,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      boxOfficeDisplay,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      approxBoxOffice,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Positioned(
+              bottom: 10,
+              left: 10,
+              right: 10,
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Converts large numbers to an approximate readable format
+  String _formatApproximate(int number) {
+    if (number >= 1e9) {
+      return "(${(number / 1e9).toStringAsFixed(1)}B)";
+    } else if (number >= 1e6) {
+      return "(${(number / 1e6).toStringAsFixed(1)}M)";
+    } else if (number >= 1e3) {
+      return "(${(number / 1e3).toStringAsFixed(1)}K)";
+    }
+    return "";
+  }
+}
+
+
 // Movie Card Widget
-// impo
+
 class MovieCard extends StatelessWidget {
   final Map<String, dynamic> movie;
 
@@ -260,23 +471,34 @@ class MovieCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => MovieDetailScreen(imdbID: imdbId ),
+              builder: (context) => MovieDetailScreen(imdbID: imdbId),
             ),
           );
         }
       },
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 10),
-        child: SizedBox(
-          width: 150,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              imageUrl != null && imageUrl.isNotEmpty
+      child: Container(
+        width: 150,
+        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              spreadRadius: 2,
+              offset: const Offset(2, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: imageUrl != null && imageUrl.isNotEmpty
                   ? Image.network(
                 imageUrl,
-                height: 170,
                 width: 150,
+                height: 220,
                 fit: BoxFit.cover,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
@@ -284,7 +506,7 @@ class MovieCard extends StatelessWidget {
                 },
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    height: 100,
+                    height: 220,
                     width: 150,
                     color: Colors.grey[300],
                     child: const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
@@ -292,28 +514,50 @@ class MovieCard extends StatelessWidget {
                 },
               )
                   : Container(
-                height: 100,
+                height: 220,
                 width: 150,
                 color: Colors.grey[300],
                 child: const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
               ),
-              Padding(
-                padding: const EdgeInsets.all(5),
-                child: Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+            ),
+            Container(
+              width: 150,
+              height: 220,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.7),
+                    Colors.transparent,
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+            Positioned(
+              bottom: 10,
+              left: 10,
+              right: 10,
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
 
 Future<bool> showLogOutDialog(BuildContext context) {
   return showDialog<bool>(

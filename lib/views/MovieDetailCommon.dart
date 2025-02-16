@@ -28,7 +28,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   }
 
   Future<void> fetchMovieDetails() async {
-    String url = "https://www.omdbapi.com/?apikey=$omdbApiKey&i=${widget.imdbID}";
+    String url = "https://www.omdbapi.com/?apikey=$omdbApiKey&i=${widget
+        .imdbID}";
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -54,9 +55,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   }
 
   Future<void> _watchTrailer() async {
-    final String trailerUrl = "https://www.imdb.com/title/${widget.imdbID}/videogallery/";
+    final String trailerUrl = "https://www.imdb.com/title/${widget
+        .imdbID}/videogallery/";
     if (await canLaunchUrl(Uri.parse(trailerUrl))) {
-      await launchUrl(Uri.parse(trailerUrl), mode: LaunchMode.externalApplication);
+      await launchUrl(
+          Uri.parse(trailerUrl), mode: LaunchMode.externalApplication);
     }
   }
 
@@ -85,11 +88,15 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(movieData?["Title"] ?? "Movie Details"),
+        title: Text(movieData?["Title"] ?? "Movie Details",
+            style: const TextStyle(color: Colors.black)),
+        backgroundColor: Colors.lightBlueAccent,
         actions: [
           IconButton(
-            icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: Colors.red),
+            icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: Colors.red),
             onPressed: toggleWishlist,
           )
         ],
@@ -97,7 +104,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : errorMessage.isNotEmpty
-          ? Center(child: Text(errorMessage, style: const TextStyle(color: Colors.red)))
+          ? Center(
+          child: Text(errorMessage, style: const TextStyle(color: Colors.red)))
           : SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -114,11 +122,13 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              if (movieData?["Ratings"] != null && movieData?["Ratings"].isNotEmpty)
+              if (movieData?["Ratings"] != null &&
+                  movieData?["Ratings"].isNotEmpty)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: movieData?["Ratings"].map<Widget>((rating) {
-                    return _ratingCard(rating["Source"], rating["Value"], Colors.orange);
+                    return _ratingCard(
+                        rating["Source"], rating["Value"], Colors.orangeAccent);
                   }).toList() ?? [],
                 ),
               const SizedBox(height: 20),
@@ -127,11 +137,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
               _boxOfficeSection(movieData?["BoxOffice"]),
               _styledInfoSection("Director", movieData?["Director"]),
               _styledInfoSection("Actors", movieData?["Actors"]),
-              _styledInfoSection("Duration | Genre", "${movieData?["Runtime"]} | ${movieData?["Genre"]}"),
+              _styledInfoSection("Duration | Genre",
+                  "${movieData?["Runtime"]} | ${movieData?["Genre"]}"),
               _styledInfoSection("Awards", movieData?["Awards"]),
               const SizedBox(height: 20),
               Center(
-                child: _customButton(Icons.play_arrow, "Watch Trailer", _watchTrailer, Colors.green),
+                child: _customButton(
+                    Icons.play_arrow, "Watch Trailer", _watchTrailer,
+                    Colors.blueAccent),
               ),
             ],
           ),
@@ -157,7 +170,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
           ),
         ),
         const SizedBox(height: 5),
-        Text(platform.replaceAll("Internet Movie Database", "IMDb"), style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(platform.replaceAll("Internet Movie Database", "IMDb"),
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, color: Colors.black)),
       ],
     )
         : const SizedBox();
@@ -175,7 +190,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.blueAccent,
+              color: Colors.blueGrey,
             ),
           ),
           Expanded(
@@ -189,18 +204,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     )
         : const SizedBox();
   }
-  Widget _customButton(IconData icon, String label, VoidCallback onPressed, Color color) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
-  }
+
+
   Widget _boxOfficeSection(String? boxOffice) {
     return boxOffice != null && boxOffice.isNotEmpty
         ? Container(
@@ -211,7 +216,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         children: [
           Icon(Icons.monetization_on, color: Colors.green[800]),
           const SizedBox(width: 10),
-          Text("Box Office: $boxOffice", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text("Box Office: $boxOffice", style: const TextStyle(
+              fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     )
@@ -234,4 +240,20 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       ],
     );
   }
+
+
+  Widget _customButton(IconData icon, String label, VoidCallback onPressed,
+      Color color) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, color: Colors.white),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
 }
+
