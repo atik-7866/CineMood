@@ -57,7 +57,7 @@ class _WishlistPageState extends State<WishlistPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => MovieDetailScreen(imdbID: imdbId, isFromRapidApi: false),
+                  builder: (context) => MovieDetailScreen(imdbID: imdbId),
                 ),
               );
             },

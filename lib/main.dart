@@ -260,7 +260,7 @@ class MovieCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => MovieDetailScreen(imdbID: imdbId, isFromRapidApi: true),
+              builder: (context) => MovieDetailScreen(imdbID: imdbId ),
             ),
           );
         }

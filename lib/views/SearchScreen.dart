@@ -100,7 +100,7 @@ class _SearchScreenState extends State<SearchScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MovieDetailScreen(imdbID: imdbID, isFromRapidApi: false),
+        builder: (context) => MovieDetailScreen(imdbID: imdbID),
       ),
     );
   }
