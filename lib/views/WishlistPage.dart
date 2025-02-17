@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:registeration/views/MovieDetailCommon.dart';
- import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WishlistPage extends StatefulWidget {
   const WishlistPage({super.key});

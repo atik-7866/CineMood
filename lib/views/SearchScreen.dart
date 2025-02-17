@@ -22,6 +22,8 @@ class _SearchScreenState extends State<SearchScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
 
+  String searchType = "Title"; // Default search type
+
   @override
   void initState() {
     super.initState();
@@ -35,7 +37,14 @@ class _SearchScreenState extends State<SearchScreen> {
       errorMessage = "";
     });
 
-    final String url = "https://www.omdbapi.com/?apikey=$omdbApiKey&s=$query";
+    String url;
+    if (searchType == "Title") {
+      url = "https://www.omdbapi.com/?apikey=$omdbApiKey&s=$query";
+    } else if (searchType == "Genre") {
+      url = "https://www.omdbapi.com/?apikey=$omdbApiKey&type=movie&genre=$query";
+    } else {
+      url = "https://www.omdbapi.com/?apikey=$omdbApiKey&type=movie&actor=$query";
+    }
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -113,30 +122,53 @@ class _SearchScreenState extends State<SearchScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(
-              controller: _controller,
-              decoration: InputDecoration(
-                hintText: "Enter movie name",
-                suffixIcon: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.search),
-                      onPressed: () => searchMovies(_controller.text),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    decoration: InputDecoration(
+                      hintText: "Enter search term",
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.search),
+                            onPressed: () => searchMovies(_controller.text),
+                          ),
+                          IconButton(
+                            icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
+                            onPressed: () {
+                              if (_isListening) {
+                                _stopListening();
+                              } else {
+                                _startListening();
+                              }
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                    IconButton(
-                      icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
-                      onPressed: () {
-                        if (_isListening) {
-                          _stopListening();
-                        } else {
-                          _startListening();
-                        }
-                      },
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                SizedBox(width: 10),
+                DropdownButton<String>(
+                  value: searchType,
+                  items: ["Title", "Genre", "Actor"].map((String type) {
+                    return DropdownMenuItem<String>(
+                      value: type,
+                      child: Text(type),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        searchType = newValue;
+                      });
+                    }
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             if (isLoading) const CircularProgressIndicator(),
