@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:video_player/video_player.dart'; // Import video_player package
 
 class MovieDetailScreen extends StatefulWidget {
   final String imdbID;
@@ -21,12 +21,23 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   final String omdbApiKey = "e28238e7";
   String userEmail = ""; // To store the logged-in user's email
 
+  // Video player controller
+  VideoPlayerController? _videoPlayerController;
+  bool _isVideoLoading = false;
+
   @override
   void initState() {
     super.initState();
     fetchMovieDetails();
     _loadUserEmail(); // Load the logged-in user's email
     checkIfFavorite();
+  }
+
+  @override
+  void dispose() {
+    // Dispose of the video player controller when the widget is disposed
+    _videoPlayerController?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserEmail() async {
@@ -38,8 +49,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   }
 
   Future<void> fetchMovieDetails() async {
-    String url = "https://www.omdbapi.com/?apikey=$omdbApiKey&i=${widget
-        .imdbID}";
+    String url = "https://www.omdbapi.com/?apikey=$omdbApiKey&i=${widget.imdbID}";
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -65,28 +75,38 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   }
 
   Future<void> _watchTrailer() async {
-    final String trailerUrl = "https://www.imdb.com/title/${widget
-        .imdbID}/videogallery/";
-    if (await canLaunchUrl(Uri.parse(trailerUrl))) {
-      await launchUrl(
-          Uri.parse(trailerUrl), mode: LaunchMode.externalApplication);
-    } else {
-      // Optionally, show an error message if the trailer can't be launched
-      print("Error: Could not launch trailer.");
-    }
+    // Replace this with the actual trailer URL (e.g., from an API or hardcoded)
+    const String trailerUrl =
+        "https://www.sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4";
+
+    setState(() {
+      _isVideoLoading = true;
+    });
+
+    // Initialize the video player controller
+    _videoPlayerController = VideoPlayerController.network(trailerUrl)
+      ..initialize().then((_) {
+        setState(() {
+          _isVideoLoading = false;
+        });
+        _videoPlayerController?.play(); // Auto-play the video
+      }).catchError((error) {
+        setState(() {
+          _isVideoLoading = false;
+          errorMessage = "Failed to load trailer: $error";
+        });
+      });
   }
 
   Future<void> checkIfFavorite() async {
     if (userEmail.isNotEmpty) {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       // Get the wishlist for the logged-in user (mapped by email)
-      String? wishlist = prefs.getString(
-          userEmail); // Get wishlist as a comma-separated string
+      String? wishlist = prefs.getString(userEmail); // Get wishlist as a comma-separated string
 
       setState(() {
         // Check if the current movie is in the wishlist
-        isFavorite =
-            wishlist != null && wishlist.split(',').contains(widget.imdbID);
+        isFavorite = wishlist != null && wishlist.split(',').contains(widget.imdbID);
       });
     }
   }
@@ -94,11 +114,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   Future<void> toggleWishlist() async {
     if (userEmail.isNotEmpty) {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? wishlist = prefs.getString(userEmail) ??
-          ''; // Get the wishlist for the user
+      String? wishlist = prefs.getString(userEmail) ?? ''; // Get the wishlist for the user
 
-      List<String> userMovies = wishlist.isNotEmpty ? wishlist.split(',') : [
-      ]; // Split to get individual movie IDs
+      List<String> userMovies = wishlist.isNotEmpty ? wishlist.split(',') : []; // Split to get individual movie IDs
 
       setState(() {
         if (isFavorite) {
@@ -110,8 +128,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       });
 
       // Save the updated wishlist back to SharedPreferences
-      await prefs.setString(
-          userEmail, userMovies.join(',')); // Save as a comma-separated string
+      await prefs.setString(userEmail, userMovies.join(',')); // Save as a comma-separated string
     }
   }
 
@@ -177,13 +194,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              if (movieData?["Ratings"] != null &&
-                  movieData?["Ratings"].isNotEmpty)
+              if (movieData?["Ratings"] != null && movieData?["Ratings"].isNotEmpty)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: movieData?["Ratings"].map<Widget>((rating) {
-                    return _ratingCard(
-                        rating["Source"], rating["Value"], Colors.orangeAccent);
+                    return _ratingCard(rating["Source"], rating["Value"], Colors.orangeAccent);
                   }).toList() ?? [],
                 ),
 
@@ -226,7 +241,19 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                 textColor: Color(0xFFD8A7BB), // Light pinkish color
               ),
 
-              const SizedBox(height: 50),
+              const SizedBox(height: 20),
+
+              // Video Player Section
+              if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized)
+                AspectRatio(
+                  aspectRatio: _videoPlayerController!.value.aspectRatio,
+                  child: VideoPlayer(_videoPlayerController!),
+                ),
+
+              if (_isVideoLoading)
+                const Center(child: CircularProgressIndicator()),
+
+              const SizedBox(height: 20),
 
               // Watch Trailer Button
               Center(
@@ -271,7 +298,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     );
   }
 
-
   Widget _customButton(IconData icon, String label, VoidCallback onPressed, Color color) {
     return ElevatedButton.icon(
       onPressed: onPressed,
@@ -284,8 +310,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       ),
     );
   }
-
-
 
   Widget _ratingCard(String platform, String? rating, Color color) {
     return rating != null && rating.isNotEmpty
@@ -322,8 +346,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         children: [
           Icon(Icons.monetization_on, color: Colors.green[800]),
           const SizedBox(width: 10),
-          Text("Box Office: $boxOffice", style: const TextStyle(
-              fontSize: 16, fontWeight: FontWeight.bold)),
+          Text("Box Office: $boxOffice",
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     )

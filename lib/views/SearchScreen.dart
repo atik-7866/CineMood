@@ -17,7 +17,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool isLoading = false;
   String errorMessage = "";
 
-  final String omdbApiKey = "e28238e7"; // Replace with your OMDb API key
+  final String omdbApiKey = "e28238e7";
 
   late stt.SpeechToText _speech;
   bool _isListening = false;
@@ -144,24 +144,35 @@ class _SearchScreenState extends State<SearchScreen> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
+                    style: const TextStyle(color: Colors.white), // Set the text color to white
                     decoration: InputDecoration(
                       hintText: "Enter search term",
-                      hintStyle: TextStyle(color: const Color(0xFFD8A7BB)),
-                      // Light pink for hint text
+                      hintStyle: const TextStyle(color: Colors.white60),
+                      filled: true, // Ensures background color if needed
+                      fillColor: Colors.transparent, // No background color interference
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.white), // Border color
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.white), // Default border color
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Color(0xFFD8A7BB)), // Focused color
+                      ),
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(
-                                Icons.search, color: Color(0xFFD8A7BB)),
-                            // Light pink icon
+                            icon: const Icon(Icons.search, color: Color(0xFFD8A7BB)),
                             onPressed: () => searchMovies(_controller.text),
                           ),
                           IconButton(
                             icon: Icon(
                                 _isListening ? Icons.mic : Icons.mic_none,
                                 color: Color(0xFFD8A7BB)),
-                            // Light pink mic icon
                             onPressed: () {
                               if (_isListening) {
                                 _stopListening();
@@ -174,6 +185,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                     ),
                   ),
+
                 ),
                 SizedBox(width: 10),
                 DropdownButton<String>(
@@ -203,7 +215,7 @@ class _SearchScreenState extends State<SearchScreen> {
             if (errorMessage.isNotEmpty)
               Text(
                 errorMessage,
-                style: const TextStyle(color: Colors.red),
+                style: const TextStyle(color: Colors.white38),
               ),
             Expanded(
               child: ListView.builder(

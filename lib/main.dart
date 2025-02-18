@@ -200,11 +200,16 @@ class _NotesViewState extends State<NotesView> {
                 case MenuAction.logout:
                   final shouldLogout = await showLogOutDialog(context);
                   if (shouldLogout) {
-                    await FirebaseAuth.instance.signOut();
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                        '/login', (_) => false);
+                    try {
+                      await FirebaseAuth.instance.signOut();
+                      devtools.log("User signed out successfully.");
+                      Navigator.of(context).pushNamedAndRemoveUntil(loginRoute, (_) => false);
+                    } catch (e) {
+                      devtools.log("Error signing out: $e");
+                    }
                   }
                   break;
+
                 case MenuAction.changePassword:
                   final user = FirebaseAuth.instance.currentUser;
                   if (user != null && user.email != null) {
@@ -548,27 +553,21 @@ class MovieCard extends StatelessWidget {
     );
   }
 }
-
-
 Future<bool> showLogOutDialog(BuildContext context) {
   return showDialog<bool>(
     context: context,
     builder: (context) {
       return AlertDialog(
-        title: const Text("Sign Out"),
+        title: const Text("Logout"),
         content: const Text("Are you sure you want to log out?"),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(true);
-            },
-            child: const Text("Log Out"),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(false);
-            },
-            child: const Text("Cancel"),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text("Logout"),
           ),
         ],
       );
