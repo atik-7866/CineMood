@@ -1,3 +1,4 @@
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -119,40 +120,40 @@ class _NotesViewState extends State<NotesView> {
 
     try {
       final response = await http.get(Uri.parse(url), headers: headers);
+      devtools.log("Response for $category: ${response
+          .body}"); // Add this line for debugging
+
       if (response.statusCode == 200) {
         final decodedData = json.decode(response.body);
+        devtools.log(
+            "Decoded data for $category: $decodedData"); // Log decoded data
 
         if (decodedData is List) {
           setState(() {
             if (category == "boxOffice") {
               boxOfficeMovies = List<Map<String, dynamic>>.from(decodedData);
               isLoadingBoxOffice = false;
-              errorBoxOffice = boxOfficeMovies.isEmpty ? "No box office movies found." : "";
+              errorBoxOffice =
+              boxOfficeMovies.isEmpty ? "No box office movies found." : "";
             } else if (category == "trending") {
               trendingMovies = List<Map<String, dynamic>>.from(decodedData);
               isLoadingTrending = false;
-              errorTrending = trendingMovies.isEmpty ? "No trending movies found." : "";
+              errorTrending =
+              trendingMovies.isEmpty ? "No trending movies found." : "";
             } else {
               topMovies = List<Map<String, dynamic>>.from(decodedData);
               isLoadingTop = false;
               errorTop = topMovies.isEmpty ? "No top movies found." : "";
             }
           });
+        } else {
+          devtools.log("Unexpected data format: $decodedData");
         }
+      } else {
+        devtools.log("Failed to fetch movies: ${response.statusCode}");
       }
     } catch (e) {
-      setState(() {
-        if (category == "boxOffice") {
-          isLoadingBoxOffice = false;
-          errorBoxOffice = "Error fetching box office movies: $e";
-        } else if (category == "trending") {
-          isLoadingTrending = false;
-          errorTrending = "Error fetching trending movies: $e";
-        } else {
-          isLoadingTop = false;
-          errorTop = "Error fetching top movies: $e";
-        }
-      });
+      devtools.log("Error fetching movies: $e");
     }
   }
 
@@ -160,32 +161,39 @@ class _NotesViewState extends State<NotesView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFF60063F), // Dark magenta for AppBar
         title: const Text(
           "Main UI",
-          style: TextStyle(fontSize: 24),
+          style: TextStyle(
+              fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
-              // Navigate to SearchScreen when clicked
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => SearchScreen()),
               );
             },
+            color: Colors.white, // White color for the search icon
           ),
           IconButton(
             icon: const Icon(Icons.favorite),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const WishlistPage()),
-              );
+            onPressed: () async {
+              User? user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => WishlistPage(),
+                  ),
+                );
+              }
             },
+            color: Colors.white, // White color for the heart icon
           ),
-
           PopupMenuButton<MenuAction>(
             onSelected: (value) async {
               switch (value) {
@@ -193,13 +201,15 @@ class _NotesViewState extends State<NotesView> {
                   final shouldLogout = await showLogOutDialog(context);
                   if (shouldLogout) {
                     await FirebaseAuth.instance.signOut();
-                    Navigator.of(context).pushNamedAndRemoveUntil(loginRoute, (_) => false);
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                        '/login', (_) => false);
                   }
                   break;
                 case MenuAction.changePassword:
                   final user = FirebaseAuth.instance.currentUser;
                   if (user != null && user.email != null) {
-                    await FirebaseAuth.instance.sendPasswordResetEmail(email: user.email!);
+                    await FirebaseAuth.instance.sendPasswordResetEmail(
+                        email: user.email!);
                     showPasswordResetDialog(context);
                   }
                   break;
@@ -209,83 +219,113 @@ class _NotesViewState extends State<NotesView> {
               return const [
                 PopupMenuItem<MenuAction>(
                   value: MenuAction.changePassword,
-                  child: Text("Change Password", style: TextStyle(fontSize: 16)),
+                  child: Text("Change Password",
+                      style: TextStyle(fontSize: 16, color: Colors.black)),
                 ),
                 PopupMenuItem<MenuAction>(
                   value: MenuAction.logout,
-                  child: Text("Logout", style: TextStyle(fontSize: 16)),
+                  child: Text("Logout",
+                      style: TextStyle(fontSize: 16, color: Colors.black)),
                 ),
               ];
             },
           ),
         ],
       ),
-      body: Padding(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF271A23), // Dark pink / magenta at the top
+              const Color(0xFF752145), // Lighter pink/magenta transition
+              Colors.black, // Black at the bottom for a smooth fade
+            ], // Gradient from dark pink/magenta to black
+          ),
+        ),
         padding: const EdgeInsets.all(20.0),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               if (isLoadingBoxOffice)
-                const CircularProgressIndicator()
-              else if (errorBoxOffice.isNotEmpty)
-                Text(errorBoxOffice, style: const TextStyle(color: Colors.red, fontSize: 16))
+                const CircularProgressIndicator(
+                    color: Colors.white) // White loading indicator
               else
-                SizedBox(
-                  height: 250,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: boxOfficeMovies.length,
-                    itemBuilder: (context, index) {
-                      final movie = boxOfficeMovies[index];
-                      return BoxOfficeMovieCard(movie: movie);
-                    },
+                if (errorBoxOffice.isNotEmpty)
+                  Text(errorBoxOffice,
+                      style: const TextStyle(color: Colors.red, fontSize: 16))
+                else
+                  SizedBox(
+                    height: 250,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: boxOfficeMovies.length,
+                      itemBuilder: (context, index) {
+                        final movie = boxOfficeMovies[index];
+                        return BoxOfficeCard(movie: movie);
+                      },
+                    ),
                   ),
-                ),
               const SizedBox(height: 20),
               const Text(
                 "Trending Movies",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white, // White text color
+                ),
               ),
               const SizedBox(height: 10),
               if (isLoadingTrending)
-                const CircularProgressIndicator()
-              else if (errorTrending.isNotEmpty)
-                Text(errorTrending, style: const TextStyle(color: Colors.red, fontSize: 16))
+                const CircularProgressIndicator(
+                    color: Colors.white) // White loading indicator
               else
-                SizedBox(
-                  height: 220,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: trendingMovies.length,
-                    itemBuilder: (context, index) {
-                      final movie = trendingMovies[index];
-                      return MovieCard(movie: movie);
-                    },
+                if (errorTrending.isNotEmpty)
+                  Text(errorTrending,
+                      style: const TextStyle(color: Colors.red, fontSize: 16))
+                else
+                  SizedBox(
+                    height: 220,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: trendingMovies.length,
+                      itemBuilder: (context, index) {
+                        final movie = trendingMovies[index];
+                        return MovieCard(movie: movie);
+                      },
+                    ),
                   ),
-                ),
               const SizedBox(height: 20),
               const Text(
                 "Top 250 Movies",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white, // White text color
+                ),
               ),
               const SizedBox(height: 12),
               if (isLoadingTop)
-                const CircularProgressIndicator()
-              else if (errorTop.isNotEmpty)
-                Text(errorTop, style: const TextStyle(color: Colors.red, fontSize: 12))
+                const CircularProgressIndicator(
+                    color: Colors.white) // White loading indicator
               else
-                SizedBox(
-                  height: 220,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: topMovies.length,
-                    itemBuilder: (context, index) {
-                      final movie = topMovies[index];
-                      return MovieCard(movie: movie);
-                    },
+                if (errorTop.isNotEmpty)
+                  Text(errorTop,
+                      style: const TextStyle(color: Colors.red, fontSize: 12))
+                else
+                  SizedBox(
+                    height: 220,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: topMovies.length,
+                      itemBuilder: (context, index) {
+                        final movie = topMovies[index];
+                        return MovieCard(movie: movie);
+                      },
+                    ),
                   ),
-                ),
             ],
           ),
         ),
@@ -293,26 +333,22 @@ class _NotesViewState extends State<NotesView> {
     );
   }
 }
-
-
-
-class BoxOfficeMovieCard extends StatelessWidget {
+  class BoxOfficeCard extends StatelessWidget {
   final Map<String, dynamic> movie;
 
-  const BoxOfficeMovieCard({super.key, required this.movie});
+  const BoxOfficeCard({super.key, required this.movie});
 
   @override
   Widget build(BuildContext context) {
-    print("Box Office Movie Data: $movie");
+    print("Box Office Data: $movie");
 
     String title = movie["primaryTitle"]?.toString() ?? "Unknown Title";
-    String? imageUrl = movie["primaryImage"] is String ? movie["primaryImage"] : null;
-    String? imdbId = movie["id"]?.toString();
+    String? imageUrl;
+    String? imdbId = movie["id"]?.toString(); // Extract IMDB ID
 
-    // Get Box Office Collection (assuming it's stored as a number in "boxOffice")
-    int? boxOffice = movie["boxOffice"] is int ? movie["boxOffice"] : null;
-    String boxOfficeDisplay = boxOffice != null ? "\$${boxOffice.toString()}" : "";
-    String approxBoxOffice = boxOffice != null ? _formatApproximate(boxOffice) : "";
+    if (movie["primaryImage"] is String) {
+      imageUrl = movie["primaryImage"];
+    }
 
     return GestureDetector(
       onTap: () {
@@ -326,28 +362,29 @@ class BoxOfficeMovieCard extends StatelessWidget {
         }
       },
       child: Container(
-        width: 150,
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        width: 180,
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 15),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.2),
-              blurRadius: 8,
-              spreadRadius: 2,
-              offset: const Offset(2, 4),
+              blurRadius: 10,
+              spreadRadius: 3,
+              offset: const Offset(4, 4),
             ),
           ],
         ),
         child: Stack(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               child: imageUrl != null && imageUrl.isNotEmpty
                   ? Image.network(
                 imageUrl,
-                width: 150,
-                height: 220,
+                width: 180,
+                height: 250,
                 fit: BoxFit.cover,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
@@ -355,93 +392,47 @@ class BoxOfficeMovieCard extends StatelessWidget {
                 },
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    height: 220,
-                    width: 150,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+                    height: 250,
+                    width: 180,
+                    color: Colors.grey[400],
+                    child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
                   );
                 },
               )
                   : Container(
-                height: 220,
-                width: 150,
-                color: Colors.grey[300],
-                child: const Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+                height: 250,
+                width: 180,
+                color: Colors.grey[400],
+                child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
               ),
             ),
-            Container(
-              width: 150,
-              height: 220,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.7),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-            if (boxOffice != null)
-              Positioned(
-                top: 10,
-                left: 10,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      boxOfficeDisplay,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      approxBoxOffice,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             Positioned(
               bottom: 10,
               left: 10,
               right: 10,
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  /// Converts large numbers to an approximate readable format
-  String _formatApproximate(int number) {
-    if (number >= 1e9) {
-      return "(${(number / 1e9).toStringAsFixed(1)}B)";
-    } else if (number >= 1e6) {
-      return "(${(number / 1e6).toStringAsFixed(1)}M)";
-    } else if (number >= 1e3) {
-      return "(${(number / 1e3).toStringAsFixed(1)}K)";
-    }
-    return "";
   }
 }
 

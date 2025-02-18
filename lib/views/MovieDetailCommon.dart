@@ -19,12 +19,22 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   String errorMessage = "";
   bool isFavorite = false;
   final String omdbApiKey = "e28238e7";
+  String userEmail = ""; // To store the logged-in user's email
 
   @override
   void initState() {
     super.initState();
     fetchMovieDetails();
+    _loadUserEmail(); // Load the logged-in user's email
     checkIfFavorite();
+  }
+
+  Future<void> _loadUserEmail() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userEmail =
+          prefs.getString('userEmail') ?? ""; // Get the logged-in user's email
+    });
   }
 
   Future<void> fetchMovieDetails() async {
@@ -60,64 +70,109 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     if (await canLaunchUrl(Uri.parse(trailerUrl))) {
       await launchUrl(
           Uri.parse(trailerUrl), mode: LaunchMode.externalApplication);
+    } else {
+      // Optionally, show an error message if the trailer can't be launched
+      print("Error: Could not launch trailer.");
     }
   }
 
   Future<void> checkIfFavorite() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> wishlist = prefs.getStringList('wishlist') ?? [];
-    setState(() {
-      isFavorite = wishlist.contains(widget.imdbID);
-    });
+    if (userEmail.isNotEmpty) {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      // Get the wishlist for the logged-in user (mapped by email)
+      String? wishlist = prefs.getString(
+          userEmail); // Get wishlist as a comma-separated string
+
+      setState(() {
+        // Check if the current movie is in the wishlist
+        isFavorite =
+            wishlist != null && wishlist.split(',').contains(widget.imdbID);
+      });
+    }
   }
 
   Future<void> toggleWishlist() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> wishlist = prefs.getStringList('wishlist') ?? [];
-    setState(() {
-      if (isFavorite) {
-        wishlist.remove(widget.imdbID);
-      } else {
-        wishlist.add(widget.imdbID);
-      }
-      isFavorite = !isFavorite;
-    });
-    await prefs.setStringList('wishlist', wishlist);
+    if (userEmail.isNotEmpty) {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? wishlist = prefs.getString(userEmail) ??
+          ''; // Get the wishlist for the user
+
+      List<String> userMovies = wishlist.isNotEmpty ? wishlist.split(',') : [
+      ]; // Split to get individual movie IDs
+
+      setState(() {
+        if (isFavorite) {
+          userMovies.remove(widget.imdbID); // Remove from wishlist
+        } else {
+          userMovies.add(widget.imdbID); // Add to wishlist
+        }
+        isFavorite = !isFavorite;
+      });
+
+      // Save the updated wishlist back to SharedPreferences
+      await prefs.setString(
+          userEmail, userMovies.join(',')); // Save as a comma-separated string
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(movieData?["Title"] ?? "Movie Details",
-            style: const TextStyle(color: Colors.black)),
-        backgroundColor: Colors.lightBlueAccent,
+        title: Text(
+          movieData?["Title"] ?? "Movie Details",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF60063F), // Dark magenta for AppBar
+        elevation: 4,
         actions: [
           IconButton(
-            icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: Colors.red),
+            icon: Icon(
+              isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: Colors.white, // White for icon color
+            ),
             onPressed: toggleWishlist,
-          )
+          ),
         ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : errorMessage.isNotEmpty
           ? Center(
-          child: Text(errorMessage, style: const TextStyle(color: Colors.red)))
-          : SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+        child: Text(
+          errorMessage,
+          style: const TextStyle(
+            color: Color(0xDFD8A7BB),
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      )
+          : Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF150F13), // Dark magenta at the top
+              const Color(0xFF752145), // Lighter pink/magenta transition
+              Colors.black, // Black at the bottom for a smooth fade
+            ],
+          ),
+        ),
+        padding: const EdgeInsets.all(20.0),
+        child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Poster Image Section
               Center(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   child: Image.network(
                     movieData?["Poster"] ?? "",
                     height: 300,
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
@@ -131,20 +186,56 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                         rating["Source"], rating["Value"], Colors.orangeAccent);
                   }).toList() ?? [],
                 ),
+
               const SizedBox(height: 20),
-              _plotSection(),
+
+              // Plot Section with distinct background
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: Color(0xFFF8E2F1), // Light pinkish background for plot
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: _plotSection(),
+              ),
               const SizedBox(height: 20),
+
+              // BoxOffice Section
               _boxOfficeSection(movieData?["BoxOffice"]),
-              _styledInfoSection("Director", movieData?["Director"]),
-              _styledInfoSection("Actors", movieData?["Actors"]),
-              _styledInfoSection("Duration | Genre",
-                  "${movieData?["Runtime"]} | ${movieData?["Genre"]}"),
-              _styledInfoSection("Awards", movieData?["Awards"]),
               const SizedBox(height: 20),
+
+              // Styled Information Sections with light text color
+              _styledInfoSection(
+                "Director",
+                movieData?["Director"],
+                textColor: Color(0xFFD8A7BB), // Light pinkish color
+              ),
+              _styledInfoSection(
+                "Actors",
+                movieData?["Actors"],
+                textColor: Color(0xFFD8A7BB), // Light pinkish color
+              ),
+              _styledInfoSection(
+                "Duration | Genre",
+                "${movieData?["Runtime"]} | ${movieData?["Genre"]}",
+                textColor: Color(0xFFD8A7BB), // Light pinkish color
+              ),
+              _styledInfoSection(
+                "Awards",
+                movieData?["Awards"],
+                textColor: Color(0xFFD8A7BB), // Light pinkish color
+              ),
+
+              const SizedBox(height: 50),
+
+              // Watch Trailer Button
               Center(
                 child: _customButton(
-                    Icons.play_arrow, "Watch Trailer", _watchTrailer,
-                    Colors.blueAccent),
+                  Icons.play_arrow,
+                  "Watch Trailer",
+                  _watchTrailer,
+                  const Color(0xFF752145), // Lighter pink/magenta color for button
+                ),
               ),
             ],
           ),
@@ -152,6 +243,49 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       ),
     );
   }
+
+  Widget _styledInfoSection(String title, String? value, {Color textColor = const Color(0xFFD8A7BB)}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: textColor, // Use the passed textColor here
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value ?? "Not Available",
+            style: TextStyle(
+              fontSize: 16,
+              color: textColor, // Use the passed textColor here as well
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _customButton(IconData icon, String label, VoidCallback onPressed, Color color) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, color: Colors.white),
+      label: Text(label, style: const TextStyle(color: Colors.white)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color, // Use backgroundColor instead of primary
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+
 
   Widget _ratingCard(String platform, String? rating, Color color) {
     return rating != null && rating.isNotEmpty
@@ -172,39 +306,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         const SizedBox(height: 5),
         Text(platform.replaceAll("Internet Movie Database", "IMDb"),
             style: const TextStyle(
-                fontWeight: FontWeight.bold, color: Colors.black)),
+                fontWeight: FontWeight.w800, color: Color(0xFFD8A7BB))),
       ],
     )
         : const SizedBox();
   }
-
-  Widget _styledInfoSection(String title, String? content) {
-    return content != null && content.isNotEmpty
-        ? Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "$title: ",
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.blueGrey,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              content,
-              style: const TextStyle(fontSize: 16, color: Colors.black87),
-            ),
-          ),
-        ],
-      ),
-    )
-        : const SizedBox();
-  }
-
 
   Widget _boxOfficeSection(String? boxOffice) {
     return boxOffice != null && boxOffice.isNotEmpty
@@ -240,20 +346,4 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       ],
     );
   }
-
-
-  Widget _customButton(IconData icon, String label, VoidCallback onPressed,
-      Color color) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
-  }
 }
-

@@ -41,9 +41,11 @@ class _SearchScreenState extends State<SearchScreen> {
     if (searchType == "Title") {
       url = "https://www.omdbapi.com/?apikey=$omdbApiKey&s=$query";
     } else if (searchType == "Genre") {
-      url = "https://www.omdbapi.com/?apikey=$omdbApiKey&type=movie&genre=$query";
+      url =
+      "https://www.omdbapi.com/?apikey=$omdbApiKey&type=movie&genre=$query";
     } else {
-      url = "https://www.omdbapi.com/?apikey=$omdbApiKey&type=movie&actor=$query";
+      url =
+      "https://www.omdbapi.com/?apikey=$omdbApiKey&type=movie&actor=$query";
     }
 
     try {
@@ -64,7 +66,8 @@ class _SearchScreenState extends State<SearchScreen> {
       } else {
         setState(() {
           isLoading = false;
-          errorMessage = "Failed to load search results: ${response.statusCode}";
+          errorMessage =
+          "Failed to load search results: ${response.statusCode}";
         });
       }
     } catch (e) {
@@ -117,8 +120,22 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Search Movies")),
-      body: Padding(
+      appBar: AppBar(
+        title: const Text("Search Movies"),
+        backgroundColor: const Color(0xFF752145), // Dark Pink shade for AppBar
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF150F13), // Dark magenta at the top
+              const Color(0xFF752145), // Lighter pink/magenta transition
+              Colors.black,// Light pink transition
+            ],
+          ),
+        ),
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
@@ -129,15 +146,22 @@ class _SearchScreenState extends State<SearchScreen> {
                     controller: _controller,
                     decoration: InputDecoration(
                       hintText: "Enter search term",
+                      hintStyle: TextStyle(color: const Color(0xFFD8A7BB)),
+                      // Light pink for hint text
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.search),
+                            icon: const Icon(
+                                Icons.search, color: Color(0xFFD8A7BB)),
+                            // Light pink icon
                             onPressed: () => searchMovies(_controller.text),
                           ),
                           IconButton(
-                            icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
+                            icon: Icon(
+                                _isListening ? Icons.mic : Icons.mic_none,
+                                color: Color(0xFFD8A7BB)),
+                            // Light pink mic icon
                             onPressed: () {
                               if (_isListening) {
                                 _stopListening();
@@ -157,7 +181,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   items: ["Title", "Genre", "Actor"].map((String type) {
                     return DropdownMenuItem<String>(
                       value: type,
-                      child: Text(type),
+                      child: Text(
+                        type,
+                        style: const TextStyle(
+                            color: Color(0xFFD8A7BB)), // Light pink text color
+                      ),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
@@ -173,7 +201,10 @@ class _SearchScreenState extends State<SearchScreen> {
             const SizedBox(height: 16),
             if (isLoading) const CircularProgressIndicator(),
             if (errorMessage.isNotEmpty)
-              Text(errorMessage, style: const TextStyle(color: Colors.red)),
+              Text(
+                errorMessage,
+                style: const TextStyle(color: Colors.red),
+              ),
             Expanded(
               child: ListView.builder(
                 itemCount: searchResults.length,
@@ -183,8 +214,18 @@ class _SearchScreenState extends State<SearchScreen> {
                     leading: movie["Poster"] != "N/A"
                         ? Image.network(movie["Poster"], width: 50)
                         : const Icon(Icons.movie),
-                    title: Text(movie["Title"] ?? "Unknown"),
-                    subtitle: Text("Year: ${movie["Year"] ?? "Unknown"}"),
+                    title: Text(
+                      movie["Title"] ?? "Unknown",
+                      style: const TextStyle(
+                        color: Color(0xFFD8A7BB), // Light pink text color
+                      ),
+                    ),
+                    subtitle: Text(
+                      "Year: ${movie["Year"] ?? "Unknown"}",
+                      style: const TextStyle(
+                        color: Color(0xFFD8A7BB), // Light pink text color
+                      ),
+                    ),
                     onTap: () => navigateToMovieDetail(movie["imdbID"]),
                   );
                 },
