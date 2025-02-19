@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:registeration/constants/routes.dart';
 import 'package:registeration/utilities/show_error_dialog.dart';
 
@@ -13,6 +14,7 @@ class RegisterationView extends StatefulWidget {
 class _RegisterationViewState extends State<RegisterationView> {
   late TextEditingController _email;
   late TextEditingController _password;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   @override
   void initState() {
@@ -28,6 +30,31 @@ class _RegisterationViewState extends State<RegisterationView> {
     super.dispose();
   }
 
+  Future<void> _signInWithGoogle() async {
+    try {
+      await _googleSignIn.signOut(); // Ensure user is signed out before signing in
+
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return; // User canceled sign-in
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        Navigator.of(context).pushNamedAndRemoveUntil(notesRoute, (route) => false);
+      }
+    } catch (e) {
+      showErrorDialog(context, "Failed to sign in with Google. Please try again.");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -36,21 +63,19 @@ class _RegisterationViewState extends State<RegisterationView> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.black, // Lighter pink
-            Color(0xFF752145), // Dark pink/magenta
-
-            Colors.black, // Lighter pink
+            Colors.black,
+            Color(0xFF752145),
+            Colors.black,
           ],
         ),
       ),
       child: Scaffold(
-        backgroundColor: Colors.transparent, // Make scaffold background transparent
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
-          backgroundColor: Color(0xFF100A0C),
+          backgroundColor: const Color(0xFF100A0C),
           title: const Text(
             "Register",
             style: TextStyle(
-
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -80,14 +105,12 @@ class _RegisterationViewState extends State<RegisterationView> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     labelText: "Email",
-                    labelStyle: TextStyle(color:Colors.pinkAccent,fontWeight: FontWeight.bold,),
+                    labelStyle: const TextStyle(color: Color(0xFFB8336A), fontWeight: FontWeight.bold),
                     hintText: "Enter your Email here",
                     prefixIcon: const Icon(Icons.email, color: Color(0xFFB8336A)),
                     filled: true,
-                    // fillColor: Colors,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.black),
                     ),
                   ),
                 ),
@@ -99,22 +122,19 @@ class _RegisterationViewState extends State<RegisterationView> {
                   autocorrect: false,
                   decoration: InputDecoration(
                     labelText: "Password",
-                    labelStyle: TextStyle(color:Colors.pinkAccent,fontWeight: FontWeight.bold,),
-
+                    labelStyle: const TextStyle(color: Color(0xFFB8336A), fontWeight: FontWeight.bold),
                     hintText: "Enter your Password here",
                     prefixIcon: const Icon(Icons.lock, color: Color(0xFFB8336A)),
                     filled: true,
-                    // fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.black),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFFB8336A),
+                    backgroundColor: const Color(0xFFB8336A),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -159,9 +179,44 @@ class _RegisterationViewState extends State<RegisterationView> {
                   },
                   child: const Text(
                     "Register",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,color: Colors.white),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                 ),
+                const SizedBox(height: 15),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: _signInWithGoogle,
+                  child: SizedBox(
+                    width: double.infinity, // Ensure full width
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min, // Prevent unnecessary stretching
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            "Sign in with Google",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                            overflow: TextOverflow.ellipsis, // Prevents overflow
+                            softWrap: false, // Keeps text on a single line
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 15),
                 TextButton(
                   onPressed: () {
@@ -172,11 +227,13 @@ class _RegisterationViewState extends State<RegisterationView> {
                   },
                   child: const Text(
                     "Already registered? Login here!",
-                    style: TextStyle(fontSize: 17, color: Colors.white,
-                      // decoration: TextDecoration.underline,
-                      decoration: TextDecoration.underline, // Underline
-                      decorationColor: Colors.white, // Black color for underline
-                      decorationThickness: 2.0,),
+                    style: TextStyle(
+                      fontSize: 17,
+                      color: Colors.white,
+                      decoration: TextDecoration.underline,
+                      decorationColor: Colors.white,
+                      decorationThickness: 2.0,
+                    ),
                   ),
                 ),
               ],
@@ -186,5 +243,4 @@ class _RegisterationViewState extends State<RegisterationView> {
       ),
     );
   }
-
 }

@@ -152,7 +152,7 @@ class _LoginViewState extends State<LoginView> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     labelText: "Email",
-                    labelStyle: const TextStyle(color: Color(0xFFF28AA7), fontWeight: FontWeight.bold),
+                    labelStyle: const TextStyle(color: Color(0xFFB8336A), fontWeight: FontWeight.bold),
                     hintText: "Enter your Email here",
                     prefixIcon: const Icon(Icons.email, color: Color(0xFFB8336A)),
                     filled: true,
@@ -165,7 +165,7 @@ class _LoginViewState extends State<LoginView> {
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: "Password",
-                    labelStyle: const TextStyle(color: Colors.pinkAccent, fontWeight: FontWeight.bold),
+                    labelStyle: const TextStyle(color: Color(0xFFB8336A), fontWeight: FontWeight.bold),
                     hintText: "Enter your Password here",
                     prefixIcon: const Icon(Icons.lock, color: Color(0xFFB8336A)),
                     filled: true,
@@ -187,7 +187,7 @@ class _LoginViewState extends State<LoginView> {
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
                     labelText: "Phone Number",
-                    labelStyle: const TextStyle(color: Colors.pinkAccent, fontWeight: FontWeight.bold),
+                    labelStyle: const TextStyle(color: Color(0xFFB8336A), fontWeight: FontWeight.bold),
                     hintText: "Enter your phone number",
                     prefixIcon: const Icon(Icons.phone, color: Color(0xFFB8336A)),
                     filled: true,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:registeration/views/WishlistPage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart'; // Import video_player package
 import 'package:url_launcher/url_launcher.dart';
@@ -72,7 +73,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     super.initState();
     fetchMovieDetails();
     _loadUserEmail(); // Load the logged-in user's email
-    checkIfFavorite();
+    // checkIfFavorite();
   }
 
   @override
@@ -123,40 +124,28 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     }
   }
 
-  Future<void> checkIfFavorite() async {
-    if (userEmail.isNotEmpty) {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      // Get the wishlist for the logged-in user (mapped by email)
-      String? wishlist = prefs.getString(userEmail); // Get wishlist as a comma-separated string
+  // Future<void> checkIfFavorite() async {
+  //   if (userEmail.isNotEmpty) {
+  //     final SharedPreferences prefs = await SharedPreferences.getInstance();
+  //     String? wishlist = prefs.getString(userEmail);
+  //
+  //     setState(() {
+  //       isFavorite = wishlist != null && wishlist.split(',').contains(widget.imdbID);
+  //     });
+  //   }
+  // }
 
-      setState(() {
-        // Check if the current movie is in the wishlist
-        isFavorite = wishlist != null && wishlist.split(',').contains(widget.imdbID);
-      });
+  void toggleWishlist() {
+    setState(() {
+      isFavorite = !isFavorite;
+    });
+
+    if (isFavorite) {
+      WishlistPage.wishlist.add(widget.imdbID); // Add to wishlist
+    } else {
+      WishlistPage.wishlist.remove(widget.imdbID); // Remove from wishlist
     }
   }
-
-  Future<void> toggleWishlist() async {
-    if (userEmail.isNotEmpty) {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? wishlist = prefs.getString(userEmail) ?? '';
-      List<String> userMovies = wishlist.isNotEmpty ? wishlist.split(',') : [];
-
-      setState(() {
-        if (isFavorite) {
-          userMovies.remove(widget.imdbID); // Remove from wishlist
-        } else {
-          userMovies.add(widget.imdbID); // Add to wishlist
-        }
-        isFavorite = !isFavorite;
-      });
-
-      // Save the updated wishlist
-      await prefs.setString(userEmail, userMovies.join(','));
-      print("Updated wishlist: ${userMovies.join(',')}"); // Debug log
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -170,10 +159,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: Colors.white, // White for icon color
+              isFavorite ? Icons.favorite : Icons.favorite_border, // Filled or outlined heart
             ),
-            onPressed: toggleWishlist,
+            color: isFavorite ? Colors.red : Colors.white, // Red when favorited, black (default) when not
+            onPressed: () {
+              toggleWishlist(); // Toggle wishlist status
+            },
           ),
         ],
       ),

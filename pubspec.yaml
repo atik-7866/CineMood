@@ -14,7 +14,8 @@ environment:
 # Dependencies specify other packages your app requires.
 dependencies:
   flutter:
-    sdk: flutter  # Flutter SDK dependency
+    sdk: flutter
+    # Flutter SDK dependency
 
   cupertino_icons: ^1.0.8  # Cupertino iOS style icons for iOS apps
   firebase_auth: ^5.4.0  # Firebase Authentication for user login/register
@@ -41,6 +42,8 @@ flutter:
 
   uses-material-design: true  # Enables Material Icons and Design
 
+#  assets:
+#      - assets/a.jpg
   # Assets section for images, you can use them if needed in the future.
   # assets:
   #   - images/a_dot_burr.jpeg
