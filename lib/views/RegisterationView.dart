@@ -186,4 +186,5 @@ class _RegisterationViewState extends State<RegisterationView> {
       ),
     );
   }
+
 }

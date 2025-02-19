@@ -6,7 +6,7 @@ import 'package:registeration/constants/routes.dart';
 import 'package:registeration/firebase_options.dart';
 import 'package:registeration/views/LoginView.dart';
 import 'package:registeration/views/MovieDetailCommon.dart';
- import 'package:registeration/views/RegisterationView.dart';
+import 'package:registeration/views/RegisterationView.dart';
 import 'dart:developer' as devtools show log;
 import 'package:http/http.dart' as http;
 import 'package:registeration/views/SearchScreen.dart';
@@ -70,7 +70,6 @@ class HomePage extends StatelessWidget {
 
 enum MenuAction { logout, changePassword }
 
-
 class NotesView extends StatefulWidget {
   const NotesView({super.key});
 
@@ -112,42 +111,48 @@ class _NotesViewState extends State<NotesView> {
     await fetchMovies(url, category: "top");
   }
 
+
+  Map<String, List<String>> movieIdCache = {}; // Cache for IMDb IDs per category
+
   Future<void> fetchMovies(String url, {required String category}) async {
     const Map<String, String> headers = {
       "X-RapidAPI-Host": "imdb236.p.rapidapi.com",
-      "X-RapidAPI-Key": "b8da8d822dmsh382b2aefcac888bp13b9a6jsn51c625417a41",
+      "X-RapidAPI-Key": "b9da8d822dmsh382b2aefcac888bp13b9a6jsn51c625417a41",
     };
 
     try {
       final response = await http.get(Uri.parse(url), headers: headers);
-      devtools.log("Response for $category: ${response
-          .body}"); // Add this line for debugging
+      devtools.log("Response for $category: ${response.body}");
 
       if (response.statusCode == 200) {
         final decodedData = json.decode(response.body);
-        devtools.log(
-            "Decoded data for $category: $decodedData"); // Log decoded data
+        devtools.log("Decoded data for $category: $decodedData");
 
-        if (decodedData is List) {
+        if (decodedData is List<dynamic>) { // Ensure it's a List
           setState(() {
             if (category == "boxOffice") {
               boxOfficeMovies = List<Map<String, dynamic>>.from(decodedData);
               isLoadingBoxOffice = false;
-              errorBoxOffice =
-              boxOfficeMovies.isEmpty ? "No box office movies found." : "";
+              errorBoxOffice = boxOfficeMovies.isEmpty ? "No box office movies found." : "";
             } else if (category == "trending") {
               trendingMovies = List<Map<String, dynamic>>.from(decodedData);
               isLoadingTrending = false;
-              errorTrending =
-              trendingMovies.isEmpty ? "No trending movies found." : "";
+              errorTrending = trendingMovies.isEmpty ? "No trending movies found." : "";
             } else {
               topMovies = List<Map<String, dynamic>>.from(decodedData);
               isLoadingTop = false;
               errorTop = topMovies.isEmpty ? "No top movies found." : "";
             }
+
+             movieIdCache[category] = decodedData
+                .where((movie) => movie is Map<String, dynamic> && movie.containsKey("id")) // Ensure valid map
+                .map<String>((movie) => (movie as Map<String, dynamic>)["id"].toString()) // Extract "id"
+                .toList();
+
+            devtools.log("Stored IMDb IDs for $category: ${movieIdCache[category]}");
           });
         } else {
-          devtools.log("Unexpected data format: $decodedData");
+          devtools.log("Unexpected data format for $category: $decodedData");
         }
       } else {
         devtools.log("Failed to fetch movies: ${response.statusCode}");
@@ -157,15 +162,15 @@ class _NotesViewState extends State<NotesView> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF60063F), // Dark magenta for AppBar
+        backgroundColor: const Color(0xFF60063F),
         title: const Text(
           "Main UI",
-          style: TextStyle(
-              fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         centerTitle: true,
         actions: [
@@ -177,7 +182,7 @@ class _NotesViewState extends State<NotesView> {
                 MaterialPageRoute(builder: (context) => SearchScreen()),
               );
             },
-            color: Colors.white, // White color for the search icon
+            color: Colors.white,
           ),
           IconButton(
             icon: const Icon(Icons.favorite),
@@ -192,7 +197,7 @@ class _NotesViewState extends State<NotesView> {
                 );
               }
             },
-            color: Colors.white, // White color for the heart icon
+            color: Colors.white,
           ),
           PopupMenuButton<MenuAction>(
             onSelected: (value) async {
@@ -213,8 +218,7 @@ class _NotesViewState extends State<NotesView> {
                 case MenuAction.changePassword:
                   final user = FirebaseAuth.instance.currentUser;
                   if (user != null && user.email != null) {
-                    await FirebaseAuth.instance.sendPasswordResetEmail(
-                        email: user.email!);
+                    await FirebaseAuth.instance.sendPasswordResetEmail(email: user.email!);
                     showPasswordResetDialog(context);
                   }
                   break;
@@ -243,10 +247,10 @@ class _NotesViewState extends State<NotesView> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              const Color(0xFF271A23), // Dark pink / magenta at the top
-              const Color(0xFF752145), // Lighter pink/magenta transition
-              Colors.black, // Black at the bottom for a smooth fade
-            ], // Gradient from dark pink/magenta to black
+              const Color(0xFF271A23),
+              const Color(0xFF752145),
+              Colors.black,
+            ],
           ),
         ),
         padding: const EdgeInsets.all(20.0),
@@ -255,82 +259,65 @@ class _NotesViewState extends State<NotesView> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               if (isLoadingBoxOffice)
-                const CircularProgressIndicator(
-                    color: Colors.white) // White loading indicator
+                const CircularProgressIndicator(color: Colors.white)
+              else if (errorBoxOffice.isNotEmpty)
+                Text(errorBoxOffice, style: const TextStyle(color: Colors.red, fontSize: 16))
               else
-                if (errorBoxOffice.isNotEmpty)
-                  Text(errorBoxOffice,
-                      style: const TextStyle(color: Colors.red, fontSize: 16))
-                else
-                  SizedBox(
-                    height: 250,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: boxOfficeMovies.length,
-                      itemBuilder: (context, index) {
-                        final movie = boxOfficeMovies[index];
-                        return BoxOfficeCard(movie: movie);
-                      },
-                    ),
+                SizedBox(
+                  height: 250,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: boxOfficeMovies.length,
+                    itemBuilder: (context, index) {
+                      final movie = boxOfficeMovies[index];
+                      return BoxOfficeCard(movie: movie,movieIdCache: movieIdCache,);
+                    },
                   ),
+                ),
               const SizedBox(height: 20),
               const Text(
                 "Trending Movies",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white, // White text color
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               const SizedBox(height: 10),
               if (isLoadingTrending)
-                const CircularProgressIndicator(
-                    color: Colors.white) // White loading indicator
+                const CircularProgressIndicator(color: Colors.white)
+              else if (errorTrending.isNotEmpty)
+                Text(errorTrending, style: const TextStyle(color: Colors.red, fontSize: 16))
               else
-                if (errorTrending.isNotEmpty)
-                  Text(errorTrending,
-                      style: const TextStyle(color: Colors.red, fontSize: 16))
-                else
-                  SizedBox(
-                    height: 220,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: trendingMovies.length,
-                      itemBuilder: (context, index) {
-                        final movie = trendingMovies[index];
-                        return MovieCard(movie: movie);
-                      },
-                    ),
+                SizedBox(
+                  height: 220,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: trendingMovies.length,
+                    itemBuilder: (context, index) {
+                      final movie = trendingMovies[index];
+                      return MovieCard(movie: movie);
+                    },
                   ),
+                ),
               const SizedBox(height: 20),
               const Text(
                 "Top 250 Movies",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white, // White text color
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               const SizedBox(height: 12),
               if (isLoadingTop)
-                const CircularProgressIndicator(
-                    color: Colors.white) // White loading indicator
+                const CircularProgressIndicator(color: Colors.white)
+              else if (errorTop.isNotEmpty)
+                Text(errorTop, style: const TextStyle(color: Colors.red, fontSize: 12))
               else
-                if (errorTop.isNotEmpty)
-                  Text(errorTop,
-                      style: const TextStyle(color: Colors.red, fontSize: 12))
-                else
-                  SizedBox(
-                    height: 220,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: topMovies.length,
-                      itemBuilder: (context, index) {
-                        final movie = topMovies[index];
-                        return MovieCard(movie: movie);
-                      },
-                    ),
+                SizedBox(
+                  height: 220,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: topMovies.length,
+                    itemBuilder: (context, index) {
+                      final movie = topMovies[index];
+                      return MovieCard(movie: movie);
+                    },
                   ),
+                ),
             ],
           ),
         ),
@@ -338,10 +325,16 @@ class _NotesViewState extends State<NotesView> {
     );
   }
 }
-  class BoxOfficeCard extends StatelessWidget {
+
+class BoxOfficeCard extends StatelessWidget {
+  final Map<String, List<String>> movieIdCache; // ✅ Accept as a parameter
   final Map<String, dynamic> movie;
 
-  const BoxOfficeCard({super.key, required this.movie});
+  const BoxOfficeCard({
+    super.key,
+    required this.movie,
+    required this.movieIdCache, // ✅ Constructor requires it
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -349,7 +342,7 @@ class _NotesViewState extends State<NotesView> {
 
     String title = movie["primaryTitle"]?.toString() ?? "Unknown Title";
     String? imageUrl;
-    String? imdbId = movie["id"]?.toString(); // Extract IMDB ID
+    String? imdbId = movie["id"]?.toString();
 
     if (movie["primaryImage"] is String) {
       imageUrl = movie["primaryImage"];
@@ -357,11 +350,16 @@ class _NotesViewState extends State<NotesView> {
 
     return GestureDetector(
       onTap: () {
-        if (imdbId != null && imdbId.isNotEmpty) {
+        String category = "boxOffice";
+        List<String> imdbIds = movieIdCache[category] ?? [];
+        if (imdbIds.isNotEmpty) {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => MovieDetailScreen(imdbID: imdbId),
+              builder: (context) => MovieDetailPageView(
+                movieIds: imdbIds,
+                initialIndex: 0,
+              ),
             ),
           );
         }
@@ -441,9 +439,6 @@ class _NotesViewState extends State<NotesView> {
   }
 }
 
-
-// Movie Card Widget
-
 class MovieCard extends StatelessWidget {
   final Map<String, dynamic> movie;
 
@@ -455,7 +450,7 @@ class MovieCard extends StatelessWidget {
 
     String title = movie["primaryTitle"]?.toString() ?? "Unknown Title";
     String? imageUrl;
-    String? imdbId = movie["id"]?.toString(); // Extract IMDB ID
+    String? imdbId = movie["id"]?.toString();
 
     if (movie["primaryImage"] is String) {
       imageUrl = movie["primaryImage"];
@@ -467,7 +462,10 @@ class MovieCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => MovieDetailScreen(imdbID: imdbId),
+              builder: (context) => MovieDetailPageView(
+                movieIds: [imdbId],
+                initialIndex: 0,
+              ),
             ),
           );
         }
@@ -553,6 +551,7 @@ class MovieCard extends StatelessWidget {
     );
   }
 }
+
 Future<bool> showLogOutDialog(BuildContext context) {
   return showDialog<bool>(
     context: context,
@@ -581,8 +580,7 @@ void showPasswordResetDialog(BuildContext context) {
     builder: (context) {
       return AlertDialog(
         title: const Text("Password Reset"),
-        content: const Text(
-            "A password reset email has been sent to your registered email address. Please check your inbox."),
+        content: const Text("A password reset email has been sent to your registered email address. Please check your inbox."),
         actions: [
           TextButton(
             onPressed: () {

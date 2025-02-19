@@ -4,6 +4,52 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart'; // Import video_player package
 import 'package:url_launcher/url_launcher.dart';
+
+class MovieDetailPageView extends StatefulWidget {
+  final List<String> movieIds; // List of movie IDs
+  final int initialIndex; // Initial index of the current movie
+
+  const MovieDetailPageView({
+    super.key,
+    required this.movieIds,
+    this.initialIndex = 0,
+  });
+
+  @override
+  _MovieDetailPageViewState createState() => _MovieDetailPageViewState();
+}
+
+class _MovieDetailPageViewState extends State<MovieDetailPageView> {
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: PageView.builder(
+        controller: _pageController,
+        itemCount: widget.movieIds.length,
+        itemBuilder: (context, index) {
+          return MovieDetailScreen(
+            imdbID: widget.movieIds[index],
+          );
+        },
+      ),
+    );
+  }
+}
+
 class MovieDetailScreen extends StatefulWidget {
   final String imdbID;
 
@@ -21,10 +67,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   final String omdbApiKey = "e28238e7";
   String userEmail = ""; // To store the logged-in user's email
 
-  // Video player controller
-  VideoPlayerController? _videoPlayerController;
-  bool _isVideoLoading = false;
-
   @override
   void initState() {
     super.initState();
@@ -34,12 +76,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   }
 
   @override
-  void dispose() {
-    // Dispose of the video player controller when the widget is disposed
-    _videoPlayerController?.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadUserEmail() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -73,6 +109,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       });
     }
   }
+
   void _watchTrailer() async {
     if (widget.imdbID.isNotEmpty) {
       final trailerUrl = "https://www.imdb.com/title/${widget.imdbID}/videogallery/";
@@ -85,37 +122,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       }
     }
   }
-
-  // Future<void> _watchTrailer() async {
-  //   const String trailerUrl =
-  //       "https://www.sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4";
-  //
-  //
-  //   setState(() {
-  //     _isVideoLoading = true;
-  //   });
-  //
-  //   try {
-  //     _videoPlayerController?.dispose(); // Dispose of the old controller
-  //     _videoPlayerController = VideoPlayerController.network(trailerUrl)
-  //       ..initialize().then((_) {
-  //         setState(() {
-  //           _isVideoLoading = false;
-  //           _videoPlayerController?.play();
-  //         });
-  //       }).catchError((error) {
-  //         setState(() {
-  //           _isVideoLoading = false;
-  //           errorMessage = "Failed to load trailer: $error";
-  //         });
-  //       });
-  //   } catch (e) {
-  //     setState(() {
-  //       _isVideoLoading = false;
-  //       errorMessage = "Error initializing video: $e";
-  //     });
-  //   }
-  // }
 
   Future<void> checkIfFavorite() async {
     if (userEmail.isNotEmpty) {
@@ -150,7 +156,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       print("Updated wishlist: ${userMovies.join(',')}"); // Debug log
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -260,18 +265,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                 movieData?["Awards"],
                 textColor: Color(0xFFD8A7BB), // Light pinkish color
               ),
-
-              const SizedBox(height: 20),
-
-              // Video Player Section
-              if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized)
-                AspectRatio(
-                  aspectRatio: _videoPlayerController!.value.aspectRatio,
-                  child: VideoPlayer(_videoPlayerController!),
-                ),
-
-              if (_isVideoLoading)
-                const Center(child: CircularProgressIndicator()),
 
               const SizedBox(height: 20),
 
