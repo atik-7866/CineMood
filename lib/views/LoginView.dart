@@ -17,9 +17,9 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   void initState() {
+    super.initState();
     _email = TextEditingController();
     _password = TextEditingController();
-    super.initState();
   }
 
   @override
@@ -31,100 +31,97 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black, // Lighter pink
+            // Colors.black, // Lighter pink
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: const Text(
-          "Login",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+            Color(0xFF752142), // Dark pink/magenta
+            // Color(0xFF752145),
+            Colors.black, // Lighter pink
+          ],
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF170C11),
+          title: const Text(
+
+            "Login",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: screenWidth > 600 ? 400 : screenWidth,
-            ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Title and Subtitle
                 const Text(
                   "Welcome Back!",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.teal,
+                    color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  "Please login to your account",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black54,
-                  ),
-                ),
-                const SizedBox(height: 30),
-
-                // Email Text Field
+                const SizedBox(height: 20),
                 TextField(
-                  enableSuggestions: false,
-                  autocorrect: false,
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     labelText: "Email",
-                    hintText: "Enter your email here",
-                    prefixIcon: const Icon(Icons.email, color: Colors.teal),
+                    labelStyle: const TextStyle(
+                      color:Color(0xFFF28AA7),
+                      fontWeight: FontWeight.bold,
+                    ),
+                    hintText: "Enter your Email here",
+                    prefixIcon: const Icon(Icons.email, color: Color(0xFFB8336A)),
                     filled: true,
-                    fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.red),
+                      borderSide: const BorderSide(color: Colors.black),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                // Password Text Field
+                const SizedBox(height: 15),
                 TextField(
                   controller: _password,
                   obscureText: true,
-                  enableSuggestions: false,
-                  autocorrect: false,
                   decoration: InputDecoration(
                     labelText: "Password",
-                    hintText: "Enter your password here",
-                    prefixIcon: const Icon(Icons.lock, color: Colors.teal),
+                    labelStyle: const TextStyle(
+                      color: Colors.pinkAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    hintText: "Enter your Password here",
+                    prefixIcon: const Icon(Icons.lock, color: Color(0xFFB8336A)),
                     filled: true,
-                    fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.teal),
+                      borderSide: const BorderSide(color: Colors.black),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // Login Button
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
+                    backgroundColor: Color(0xFFB8336A),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     textStyle: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: Colors.white60,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -134,6 +131,7 @@ class _LoginViewState extends State<LoginView> {
                       ? null // Disable button while loading
                       : () async {
                     final email = _email.text;
+
                     final password = _password.text;
 
                     // Validate input fields
@@ -188,11 +186,13 @@ class _LoginViewState extends State<LoginView> {
                       ? const CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation(Colors.white),
                   )
-                      : const Text("Login"),
+                      : const Text("Login",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,color: Colors.white),),
+
                 ),
                 const SizedBox(height: 20),
 
-                // Register Link
+                const SizedBox(height: 15),
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pushNamedAndRemoveUntil(
@@ -201,11 +201,13 @@ class _LoginViewState extends State<LoginView> {
                     );
                   },
                   child: const Text(
-                    "Not registered yet? Register here!",
+                    "Don't have an account? Register here!",
                     style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.teal,
+                      fontSize: 17,
+                      color: Colors.white,
                       decoration: TextDecoration.underline,
+                      decorationColor: Colors.white,
+                      decorationThickness: 2.0,
                     ),
                   ),
                 ),

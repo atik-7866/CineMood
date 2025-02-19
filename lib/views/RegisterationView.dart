@@ -30,135 +30,157 @@ class _RegisterationViewState extends State<RegisterationView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: const Text(
-          "Register",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black, // Lighter pink
+            Color(0xFF752145), // Dark pink/magenta
+
+            Colors.black, // Lighter pink
+          ],
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                "Create a New Account",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal,
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                enableSuggestions: false,
-                autocorrect: false,
-                controller: _email,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: "Enter your Email here",
-                  prefixIcon: const Icon(Icons.email, color: Colors.teal),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.teal),
+      child: Scaffold(
+        backgroundColor: Colors.transparent, // Make scaffold background transparent
+        appBar: AppBar(
+          backgroundColor: Color(0xFF100A0C),
+          title: const Text(
+            "Register",
+            style: TextStyle(
+
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  "Create a New Account",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-              ),
-              const SizedBox(height: 15),
-              TextField(
-                controller: _password,
-                obscureText: true,
-                enableSuggestions: false,
-                autocorrect: false,
-                decoration: InputDecoration(
-                  hintText: "Enter your Password here",
-                  prefixIcon: const Icon(Icons.lock, color: Colors.teal),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.teal),
+                const SizedBox(height: 20),
+                TextField(
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: "Email",
+                    labelStyle: TextStyle(color:Colors.pinkAccent,fontWeight: FontWeight.bold,),
+                    hintText: "Enter your Email here",
+                    prefixIcon: const Icon(Icons.email, color: Color(0xFFB8336A)),
+                    filled: true,
+                    // fillColor: Colors,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.black),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 15),
+                TextField(
+                  controller: _password,
+                  obscureText: true,
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  decoration: InputDecoration(
+                    labelText: "Password",
+                    labelStyle: TextStyle(color:Colors.pinkAccent,fontWeight: FontWeight.bold,),
+
+                    hintText: "Enter your Password here",
+                    prefixIcon: const Icon(Icons.lock, color: Color(0xFFB8336A)),
+                    filled: true,
+                    // fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.black),
+                    ),
                   ),
                 ),
-                onPressed: () async {
-                  final email = _email.text;
-                  final password = _password.text;
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFFB8336A),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () async {
+                    final email = _email.text;
+                    final password = _password.text;
 
-                  // Add validation to check for empty fields
-                  if (email.isEmpty || password.isEmpty) {
-                    showErrorDialog(context, "Please enter both email and password.");
-                    return;
-                  }
-
-                  try {
-                    // Create User with email and password
-                    final userCredential = await FirebaseAuth.instance
-                        .createUserWithEmailAndPassword(
-                      email: email,
-                      password: password,
-                    );
-                    final user = FirebaseAuth.instance.currentUser;
-
-                    if (user != null) {
-                      await user.sendEmailVerification();
-                      Navigator.of(context).pushNamed(verifyEmailRoute);
-                    } else {
-                      showErrorDialog(context, "Error: User could not be created.");
+                    if (email.isEmpty || password.isEmpty) {
+                      showErrorDialog(context, "Please enter both email and password.");
+                      return;
                     }
-                  } on FirebaseAuthException catch (e) {
-                    // Error handling based on FirebaseAuthException
-                    if (e.code == 'weak-password') {
-                      showErrorDialog(context, "Weak password. Please try again.");
-                    } else if (e.code == "email-already-in-use") {
-                      showErrorDialog(context, "This email is already in use.");
-                    } else if (e.code == "invalid-email") {
-                      showErrorDialog(context, "Invalid email address format.");
-                    } else {
+
+                    try {
+                      final userCredential = await FirebaseAuth.instance
+                          .createUserWithEmailAndPassword(
+                        email: email,
+                        password: password,
+                      );
+                      final user = FirebaseAuth.instance.currentUser;
+
+                      if (user != null) {
+                        await user.sendEmailVerification();
+                        Navigator.of(context).pushNamed(verifyEmailRoute);
+                      } else {
+                        showErrorDialog(context, "Error: User could not be created.");
+                      }
+                    } on FirebaseAuthException catch (e) {
+                      if (e.code == 'weak-password') {
+                        showErrorDialog(context, "Weak password. Please try again.");
+                      } else if (e.code == "email-already-in-use") {
+                        showErrorDialog(context, "This email is already in use.");
+                      } else if (e.code == "invalid-email") {
+                        showErrorDialog(context, "Invalid email address format.");
+                      } else {
+                        showErrorDialog(context, "An unexpected error occurred. Please try again.");
+                      }
+                    } catch (e) {
                       showErrorDialog(context, "An unexpected error occurred. Please try again.");
                     }
-                  } catch (e) {
-                    showErrorDialog(context, "An unexpected error occurred. Please try again.");
-                  }
-                },
-                child: const Text(
-                  "Register",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  },
+                  child: const Text(
+                    "Register",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,color: Colors.white),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 15),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    loginRoute,
-                        (route) => false,
-                  );
-                },
-                child: const Text(
-                  "Already registered? Login here!",
-                  style: TextStyle(fontSize: 16, color: Colors.teal),
+                const SizedBox(height: 15),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      loginRoute,
+                          (route) => false,
+                    );
+                  },
+                  child: const Text(
+                    "Already registered? Login here!",
+                    style: TextStyle(fontSize: 17, color: Colors.white,
+                      // decoration: TextDecoration.underline,
+                      decoration: TextDecoration.underline, // Underline
+                      decorationColor: Colors.white, // Black color for underline
+                      decorationThickness: 2.0,),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
