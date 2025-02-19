@@ -115,7 +115,7 @@ class _NotesViewState extends State<NotesView> {
   Future<void> fetchMovies(String url, {required String category}) async {
     const Map<String, String> headers = {
       "X-RapidAPI-Host": "imdb236.p.rapidapi.com",
-      "X-RapidAPI-Key": "222cdddb17msh20db10d9fbd80b0p19f20ajsnc7e766c3fb2d",
+      "X-RapidAPI-Key": "b8da8d822dmsh382b2aefcac888bp13b9a6jsn51c625417a41",
     };
 
     try {

@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart'; // Import video_player package
-
+import 'package:url_launcher/url_launcher.dart';
 class MovieDetailScreen extends StatefulWidget {
   final String imdbID;
 
@@ -73,30 +73,49 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       });
     }
   }
-
-  Future<void> _watchTrailer() async {
-    // Replace this with the actual trailer URL (e.g., from an API or hardcoded)
-    const String trailerUrl =
-        "https://www.sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4";
-
-    setState(() {
-      _isVideoLoading = true;
-    });
-
-    // Initialize the video player controller
-    _videoPlayerController = VideoPlayerController.network(trailerUrl)
-      ..initialize().then((_) {
-        setState(() {
-          _isVideoLoading = false;
-        });
-        _videoPlayerController?.play(); // Auto-play the video
-      }).catchError((error) {
-        setState(() {
-          _isVideoLoading = false;
-          errorMessage = "Failed to load trailer: $error";
-        });
-      });
+  void _watchTrailer() async {
+    if (widget.imdbID.isNotEmpty) {
+      final trailerUrl = "https://www.imdb.com/title/${widget.imdbID}/videogallery/";
+      if (await canLaunch(trailerUrl)) {
+        await launch(trailerUrl);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Could not open trailer link")),
+        );
+      }
+    }
   }
+
+  // Future<void> _watchTrailer() async {
+  //   const String trailerUrl =
+  //       "https://www.sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4";
+  //
+  //
+  //   setState(() {
+  //     _isVideoLoading = true;
+  //   });
+  //
+  //   try {
+  //     _videoPlayerController?.dispose(); // Dispose of the old controller
+  //     _videoPlayerController = VideoPlayerController.network(trailerUrl)
+  //       ..initialize().then((_) {
+  //         setState(() {
+  //           _isVideoLoading = false;
+  //           _videoPlayerController?.play();
+  //         });
+  //       }).catchError((error) {
+  //         setState(() {
+  //           _isVideoLoading = false;
+  //           errorMessage = "Failed to load trailer: $error";
+  //         });
+  //       });
+  //   } catch (e) {
+  //     setState(() {
+  //       _isVideoLoading = false;
+  //       errorMessage = "Error initializing video: $e";
+  //     });
+  //   }
+  // }
 
   Future<void> checkIfFavorite() async {
     if (userEmail.isNotEmpty) {
@@ -114,9 +133,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   Future<void> toggleWishlist() async {
     if (userEmail.isNotEmpty) {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? wishlist = prefs.getString(userEmail) ?? ''; // Get the wishlist for the user
-
-      List<String> userMovies = wishlist.isNotEmpty ? wishlist.split(',') : []; // Split to get individual movie IDs
+      String? wishlist = prefs.getString(userEmail) ?? '';
+      List<String> userMovies = wishlist.isNotEmpty ? wishlist.split(',') : [];
 
       setState(() {
         if (isFavorite) {
@@ -127,10 +145,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         isFavorite = !isFavorite;
       });
 
-      // Save the updated wishlist back to SharedPreferences
-      await prefs.setString(userEmail, userMovies.join(',')); // Save as a comma-separated string
+      // Save the updated wishlist
+      await prefs.setString(userEmail, userMovies.join(','));
+      print("Updated wishlist: ${userMovies.join(',')}"); // Debug log
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
