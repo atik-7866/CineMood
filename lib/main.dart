@@ -1,10 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:registeration/constants/routes.dart';
 import 'package:registeration/firebase_options.dart';
 import 'package:registeration/views/LoginView.dart';
 import 'package:registeration/views/MovieDetailCommon.dart';
+import 'package:registeration/views/MovieReviewsPage.dart';
+import 'package:registeration/views/MyReviewsPage.dart';
+import 'package:registeration/views/ProfileView.dart';
 import 'package:registeration/views/RegisterationView.dart';
 import 'dart:developer' as devtools show log;
 import 'package:http/http.dart' as http;
@@ -12,7 +16,7 @@ import 'package:registeration/views/SearchScreen.dart';
 import 'dart:convert';
 
 import 'package:registeration/views/VerifyEmailView.dart';
-import 'package:registeration/views/WishlistPage.dart';
+import 'package:registeration/views/MyWishlistPage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +36,13 @@ void main() async {
         registerRoute: (context) => const RegisterationView(),
         notesRoute: (context) => const NotesView(),
         verifyEmailRoute: (context) => const VerifyEmailView(),
+        profileRoute: (context) => const ProfileView(),
+        wishlistRoute: (context) => const MyWishlistPage() ,
+        // reviewsRoute:(context)=>const MovieReviewsPage();
+        myReviewsRoute: (context) => const MyReviewsPage(),
+
+
+
       },
     ),
   );
@@ -91,76 +102,126 @@ class _NotesViewState extends State<NotesView> {
   void initState() {
     super.initState();
     fetchBoxOfficeMovies();
-    fetchTrendingMovies();
+    // fetchTrendingMovies();
+    fetchTrendingFromFirestore();
     fetchTopMovies();
+  }
+  Future<void> fetchTrendingFromFirestore() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance.collection('movies_trending').get();
+      final moviesList = snapshot.docs.map((doc) => doc.data()).toList();
+
+      setState(() {
+        trendingMovies = List<Map<String, dynamic>>.from(moviesList);
+        isLoadingTrending = false;
+        errorTrending = trendingMovies.isEmpty ? "No trending movies found." : "";
+      });
+
+      // Optionally cache IDs if you still use them
+      movieIdCache["trending"] = trendingMovies
+          .where((movie) => movie.containsKey("id"))
+          .map<String>((movie) => movie["id"].toString())
+          .toList();
+
+      print("🔥 Loaded ${trendingMovies.length} trending movies from Firebase");
+    } catch (e) {
+      setState(() {
+        isLoadingTrending = false;
+        errorTrending = "Error loading trending movies.";
+      });
+      print("Error fetching trending from Firestore: $e");
+    }
   }
 
   Future<void> fetchBoxOfficeMovies() async {
-    const String url = "https://imdb236.p.rapidapi.com/imdb/top-box-office";
+    const String url = "https://imdb236.p.rapidapi.com/api/imdb/most-popular-tv";
     await fetchMovies(url, category: "boxOffice");
   }
 
   Future<void> fetchTrendingMovies() async {
-    const String url = "https://imdb236.p.rapidapi.com/imdb/most-popular-movies";
+    const String url = "https://imdb236.p.rapidapi.com/api/imdb/india/top-rated-indian-movies";
     await fetchMovies(url, category: "trending");
   }
 
   Future<void> fetchTopMovies() async {
-    const String url = "https://imdb236.p.rapidapi.com/imdb/top250-movies";
+    const String url = "https://imdb236.p.rapidapi.com/api/imdb/most-popular-movies";
     await fetchMovies(url, category: "top");
   }
 
 
   Map<String, List<String>> movieIdCache = {}; // Cache for IMDb IDs per category
-
   Future<void> fetchMovies(String url, {required String category}) async {
     const Map<String, String> headers = {
       "X-RapidAPI-Host": "imdb236.p.rapidapi.com",
-      "X-RapidAPI-Key": "b9da8d822dmsh382b2aefcac888bp13b9a6jsn51c625417a41",
+      "X-RapidAPI-Key": "222cdddb17msh20db10d9fbd80b0p19f20ajsnc7e766c3fb2d",
     };
 
     try {
       final response = await http.get(Uri.parse(url), headers: headers);
-      devtools.log("Response for $category: ${response.body}");
 
       if (response.statusCode == 200) {
         final decodedData = json.decode(response.body);
-        devtools.log("Decoded data for $category: $decodedData");
 
-        if (decodedData is List<dynamic>) { // Ensure it's a List
-          setState(() {
-            if (category == "boxOffice") {
-              boxOfficeMovies = List<Map<String, dynamic>>.from(decodedData);
+        if (decodedData is List) {
+          final moviesList = List<Map<String, dynamic>>.from(decodedData);
+
+          if (category == "boxOffice") {
+            setState(() {
+              boxOfficeMovies = moviesList;
               isLoadingBoxOffice = false;
               errorBoxOffice = boxOfficeMovies.isEmpty ? "No box office movies found." : "";
-            } else if (category == "trending") {
-              trendingMovies = List<Map<String, dynamic>>.from(decodedData);
-              isLoadingTrending = false;
-              errorTrending = trendingMovies.isEmpty ? "No trending movies found." : "";
-            } else {
-              topMovies = List<Map<String, dynamic>>.from(decodedData);
+            });
+          } else if (category == "top") {
+            setState(() {
+              topMovies = moviesList;
               isLoadingTop = false;
               errorTop = topMovies.isEmpty ? "No top movies found." : "";
-            }
+            });
+          }
 
-             movieIdCache[category] = decodedData
-                .where((movie) => movie is Map<String, dynamic> && movie.containsKey("id")) // Ensure valid map
-                .map<String>((movie) => (movie as Map<String, dynamic>)["id"].toString()) // Extract "id"
-                .toList();
-
-            devtools.log("Stored IMDb IDs for $category: ${movieIdCache[category]}");
-          });
-        } else {
-          devtools.log("Unexpected data format for $category: $decodedData");
+          movieIdCache[category] = moviesList
+              .where((movie) => movie.containsKey("id"))
+              .map<String>((movie) => movie["id"].toString())
+              .toList();
         }
-      } else {
-        devtools.log("Failed to fetch movies: ${response.statusCode}");
+
+        else if (decodedData is Map && decodedData.containsKey("results")) {
+          final moviesList = List<Map<String, dynamic>>.from(decodedData["results"]);
+
+          if (category == "boxOffice") {
+            setState(() {
+              boxOfficeMovies = moviesList;
+              isLoadingBoxOffice = false;
+              errorBoxOffice = boxOfficeMovies.isEmpty ? "No box office movies found." : "";
+            });
+          } else if (category == "top") {
+            setState(() {
+              topMovies = moviesList;
+              isLoadingTop = false;
+              errorTop = topMovies.isEmpty ? "No top movies found." : "";
+            });
+          }
+
+          movieIdCache[category] = moviesList
+              .where((movie) => movie.containsKey("id"))
+              .map<String>((movie) => movie["id"].toString())
+              .toList();
+        }
       }
     } catch (e) {
-      devtools.log("Error fetching movies: $e");
+      if (category == "boxOffice") {
+        setState(() {
+          isLoadingBoxOffice = false;
+          errorBoxOffice = "Error loading box office movies.";
+        });
+      } else if (category == "top") {
+        setState(() {
+          isLoadingTop = false;
+          errorTop = "Error loading top movies.";
+        });
+      }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -168,10 +229,124 @@ class _NotesViewState extends State<NotesView> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF60063F),
         title: const Text(
-          "Main UI",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+          "Explore & Express",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.person),
+          onPressed: () async {
+            final user = FirebaseAuth.instance.currentUser;
+            if (user == null) return;
+
+            final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+            final data = doc.data();
+            final profilePic = data?['profilePic'] ??
+                'https://www.gravatar.com/avatar/${user.uid}?d=identicon';
+            final TextEditingController usernameController =
+            TextEditingController(text: data?['username'] ?? '');
+
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              builder: (context) {
+                return Padding(
+                  padding: const EdgeInsets.only(
+                      top: 20, left: 16, right: 16, bottom: 40), // for keyboard space
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundImage: NetworkImage(profilePic),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: usernameController,
+                          decoration: const InputDecoration(
+                            labelText: "Username",
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            final newUsername = usernameController.text.trim();
+                            if (newUsername.isNotEmpty) {
+                              await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(user.uid)
+                                  .update({'username': newUsername});
+
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Username updated")),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.save),
+                          label: const Text("Save Username"),
+                        ),
+                        const Divider(height: 25),
+                        ListTile(
+                          leading: const Icon(Icons.reviews),
+                          title: const Text("My Reviews"),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.pushNamed(context, '/myreviews');
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.favorite),
+                          title: const Text("My Wishlist"),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.pushNamed(context, '/wishlist');
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.lock_reset),
+                          title: const Text("Change Password"),
+                          onTap: () async {
+                            Navigator.pop(context);
+                            if (user.email != null) {
+                              await FirebaseAuth.instance
+                                  .sendPasswordResetEmail(email: user.email!);
+                              showPasswordResetDialog(context);
+                            }
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.logout),
+                          title: const Text("Logout"),
+                          onTap: () async {
+                            final shouldLogout = await showLogOutDialog(context);
+                            if (shouldLogout) {
+                              try {
+                                await FirebaseAuth.instance.signOut();
+                                Navigator.of(context)
+                                    .pushNamedAndRemoveUntil(loginRoute, (_) => false);
+                              } catch (e) {
+                                devtools.log("Error signing out: $e");
+                              }
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+          color: Colors.white,
+        ),
+
+
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -190,56 +365,16 @@ class _NotesViewState extends State<NotesView> {
               if (user != null) {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => WishlistPage(),
-                  ),
+                  MaterialPageRoute(builder: (context) => MyWishlistPage()),
                 );
               }
             },
             color: Colors.white,
           ),
-          PopupMenuButton<MenuAction>(
-            onSelected: (value) async {
-              switch (value) {
-                case MenuAction.logout:
-                  final shouldLogout = await showLogOutDialog(context);
-                  if (shouldLogout) {
-                    try {
-                      await FirebaseAuth.instance.signOut();
-                      devtools.log("User signed out successfully.");
-                      Navigator.of(context).pushNamedAndRemoveUntil(loginRoute, (_) => false);
-                    } catch (e) {
-                      devtools.log("Error signing out: $e");
-                    }
-                  }
-                  break;
-
-                case MenuAction.changePassword:
-                  final user = FirebaseAuth.instance.currentUser;
-                  if (user != null && user.email != null) {
-                    await FirebaseAuth.instance.sendPasswordResetEmail(email: user.email!);
-                    showPasswordResetDialog(context);
-                  }
-                  break;
-              }
-            },
-            itemBuilder: (context) {
-              return const [
-                PopupMenuItem<MenuAction>(
-                  value: MenuAction.changePassword,
-                  child: Text("Change Password",
-                      style: TextStyle(fontSize: 16, color: Colors.black)),
-                ),
-                PopupMenuItem<MenuAction>(
-                  value: MenuAction.logout,
-                  child: Text("Logout",
-                      style: TextStyle(fontSize: 16, color: Colors.black)),
-                ),
-              ];
-            },
-          ),
         ],
       ),
+
+
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

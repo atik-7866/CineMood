@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:registeration/constants/routes.dart';
@@ -46,54 +47,57 @@ class _LoginViewState extends State<LoginView> {
 
     setState(() => _isLoading = true);
 
-    try {
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: "+91$phoneNumber", // Change the country code as needed
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          await FirebaseAuth.instance.signInWithCredential(credential);
-          Navigator.of(context).pushNamedAndRemoveUntil(notesRoute, (route) => false);
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          showErrorDialog(context, "Verification failed: ${e.message}");
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          setState(() {
-            _verificationId = verificationId;
-            _isOTPSent = true;
-          });
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {},
-      );
-    } catch (e) {
-      await showErrorDialog(context, "Error sending OTP: $e");
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: "+91$phoneNumber",
+      timeout: const Duration(seconds: 60),
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        await FirebaseAuth.instance.signInWithCredential(credential);
+        if (!mounted) return;
+        Navigator.of(context).pushNamedAndRemoveUntil(notesRoute, (route) => false);
+      },
+      verificationFailed: (FirebaseAuthException e) async {
+        setState(() => _isLoading = false);
+        await showErrorDialog(context, "Verification failed: ${e.message}");
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        setState(() {
+          _isOTPSent = true;
+          _verificationId = verificationId;
+          _isLoading = false;
+        });
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {
+        _verificationId = verificationId;
+      },
+    );
   }
+
 
   Future<void> _verifyOTP() async {
     final smsCode = _otp.text.trim();
-    if (smsCode.isEmpty) {
-      await showErrorDialog(context, "Enter the OTP.");
+    if (_verificationId == null || smsCode.isEmpty) {
+      await showErrorDialog(context, "OTP or verification ID is missing.");
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+      final credential = PhoneAuthProvider.credential(
         verificationId: _verificationId!,
         smsCode: smsCode,
       );
-
       await FirebaseAuth.instance.signInWithCredential(credential);
+      if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil(notesRoute, (route) => false);
-    } catch (e) {
-      await showErrorDialog(context, "Invalid OTP.");
+    } on FirebaseAuthException catch (e) {
+      await showErrorDialog(context, "OTP verification failed: ${e.message}");
     } finally {
       setState(() => _isLoading = false);
     }
   }
+
+
 
   Future<void> _loginWithEmail() async {
     final email = _email.text.trim();
@@ -107,20 +111,49 @@ class _LoginViewState extends State<LoginView> {
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
       final user = FirebaseAuth.instance.currentUser;
-      if (user?.emailVerified ?? false) {
-        Navigator.of(context).pushNamedAndRemoveUntil(notesRoute, (route) => false);
-      } else {
-        Navigator.of(context).pushNamedAndRemoveUntil(verifyEmailRoute, (route) => false);
+
+      if (user != null) {
+        if (user.emailVerified) {
+          await _createUserProfile(user); // ✅ Only create profile if email is verified
+          Navigator.of(context).pushNamedAndRemoveUntil(notesRoute, (route) => false);
+        } else {
+          await FirebaseAuth.instance.signOut(); // 🚫 Prevent unverified login
+          Navigator.of(context).pushNamedAndRemoveUntil(verifyEmailRoute, (route) => false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Please verify your email before logging in.")),
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
       await showErrorDialog(context, 'Login failed: ${e.message}');
+    } catch (e) {
+      await showErrorDialog(context, 'Unexpected error: $e');
     } finally {
       setState(() => _isLoading = false);
     }
   }
+  Future<void> _createUserProfile(User user) async {
+    final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final snapshot = await docRef.get();
 
+    if (!snapshot.exists) {
+      final defaultUsername = user.email?.split('@').first ?? "user";
+      final photoURL = user.photoURL ??
+          'https://www.gravatar.com/avatar/${user.uid}?d=identicon';
+
+      await docRef.set({
+        'email': user.email,
+        'username': defaultUsername,
+        'profilePic': photoURL,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Container(

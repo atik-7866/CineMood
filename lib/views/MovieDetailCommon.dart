@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
-import 'package:registeration/views/WishlistPage.dart';
+import 'package:registeration/views/MyWishlistPage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:video_player/video_player.dart'; // Import video_player package
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:registeration/views/MovieReviewsPage.dart';
+
+
+// const String tmdbApiKey = '1a58119be39c7a19d754ca6f860b0129';
 
 class MovieDetailPageView extends StatefulWidget {
-  final List<String> movieIds; // List of movie IDs
-  final int initialIndex; // Initial index of the current movie
+  final List<String> movieIds;
+  final int initialIndex;
 
   const MovieDetailPageView({
     super.key,
@@ -38,14 +44,16 @@ class _MovieDetailPageViewState extends State<MovieDetailPageView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: PageView.builder(
-        controller: _pageController,
-        itemCount: widget.movieIds.length,
-        itemBuilder: (context, index) {
-          return MovieDetailScreen(
-            imdbID: widget.movieIds[index],
-          );
-        },
+      body: SafeArea(
+        child: PageView.builder(
+          controller: _pageController,
+          itemCount: widget.movieIds.length,
+          scrollDirection: Axis.horizontal,
+          pageSnapping: true,
+          itemBuilder: (context, index) {
+            return MovieDetailScreen(imdbID: widget.movieIds[index]);
+          },
+        ),
       ),
     );
   }
@@ -66,24 +74,42 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   String errorMessage = "";
   bool isFavorite = false;
   final String omdbApiKey = "e28238e7";
-  String userEmail = ""; // To store the logged-in user's email
+
+  late SharedPreferences _prefs;
+  String userEmail = "";
+
+  // List<Map<String, dynamic>> tmdbReviews = [];
+  bool hasFetchedReviews = false;
 
   @override
   void initState() {
     super.initState();
+    _initPrefsAndState();
     fetchMovieDetails();
-    _loadUserEmail(); // Load the logged-in user's email
-    // checkIfFavorite();
+    // if (!hasFetchedReviews) {
+    //   // fetchTMDbReviews();
+    //   hasFetchedReviews = true;
+    // }
   }
 
-  @override
-  Future<void> _loadUserEmail() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
+  Future<void> _initPrefsAndState() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final username = user.email!.split('@')[0];
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('user_wishlist')
+        .where('username', isEqualTo: username)
+        .where('imdbID', isEqualTo: widget.imdbID)
+        .limit(1)
+        .get();
+
     setState(() {
-      userEmail =
-          prefs.getString('userEmail') ?? ""; // Get the logged-in user's email
+      isFavorite = snapshot.docs.isNotEmpty;
     });
   }
+
 
   Future<void> fetchMovieDetails() async {
     String url = "https://www.omdbapi.com/?apikey=$omdbApiKey&i=${widget.imdbID}";
@@ -111,60 +137,148 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     }
   }
 
-  void _watchTrailer() async {
-    if (widget.imdbID.isNotEmpty) {
-      final trailerUrl = "https://www.imdb.com/title/${widget.imdbID}/videogallery/";
-      if (await canLaunch(trailerUrl)) {
-        await launch(trailerUrl);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Could not open trailer link")),
-        );
-      }
-    }
-  }
-
-  // Future<void> checkIfFavorite() async {
-  //   if (userEmail.isNotEmpty) {
-  //     final SharedPreferences prefs = await SharedPreferences.getInstance();
-  //     String? wishlist = prefs.getString(userEmail);
+  // Future<void> fetchTMDbReviews() async {
+  //   try {
+  //     final tmdbId = await _getTMDbIdFromImdbId(widget.imdbID);
+  //     if (tmdbId == null) return;
   //
-  //     setState(() {
-  //       isFavorite = wishlist != null && wishlist.split(',').contains(widget.imdbID);
-  //     });
+  //     final url =
+  //         "https://api.themoviedb.org/3/movie/$tmdbId/reviews?api_key=$tmdbApiKey";
+  //
+  //     final response = await http.get(
+  //       Uri.parse(url),
+  //       headers: {"Accept": "application/json"},
+  //     );
+  //
+  //     if (response.statusCode == 200) {
+  //       final data = json.decode(response.body);
+  //       if (data["results"] != null) {
+  //         setState(() {
+  //           tmdbReviews = List<Map<String, dynamic>>.from(data["results"]);
+  //         });
+  //       }
+  //     } else {
+  //       debugPrint("TMDb error: ${response.statusCode}");
+  //     }
+  //   } catch (e) {
+  //     debugPrint("TMDb review fetch failed: $e");
   //   }
   // }
 
-  void toggleWishlist() {
+  // Future<String?> _getTMDbIdFromImdbId(String imdbId) async {
+  //   final url =
+  //       "https://api.themoviedb.org/3/find/$imdbId?external_source=imdb_id&api_key=$tmdbApiKey";
+  //
+  //   try {
+  //     final response = await http.get(
+  //       Uri.parse(url),
+  //       headers: {"Accept": "application/json"},
+  //     );
+  //
+  //     if (response.statusCode != 200) {
+  //       debugPrint("Failed to get TMDb ID: ${response.statusCode}");
+  //       return null;
+  //     }
+  //
+  //     final data = json.decode(response.body);
+  //     final results = data["movie_results"];
+  //     if (results != null && results.isNotEmpty) {
+  //       return results[0]["id"].toString();
+  //     }
+  //   } catch (e) {
+  //     debugPrint("Error getting TMDb ID: $e");
+  //     await Future.delayed(Duration(seconds: 2)); // wait 2s before retry
+  //     try {
+  //       final retryResponse = await http.get(
+  //         Uri.parse(url),
+  //         headers: {"Accept": "application/json"},
+  //       );
+  //
+  //       if (retryResponse.statusCode == 200) {
+  //         final data = json.decode(retryResponse.body);
+  //         final results = data["movie_results"];
+  //         if (results != null && results.isNotEmpty) {
+  //           return results[0]["id"].toString();
+  //         }
+  //       }
+  //     } catch (e2) {
+  //       debugPrint("Retry failed: $e2");
+  //     }
+  //   }
+  //
+  //   return null;
+  // }
+
+  void _watchTrailer() async {
+    final trailerUrl = "https://www.imdb.com/title/${widget.imdbID}/videogallery/";
+    if (await canLaunch(trailerUrl)) {
+      await launch(trailerUrl);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Could not open trailer link")),
+      );
+    }
+  }
+  void toggleWishlist() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final username = user.email!.split('@')[0];
+    final docRef = FirebaseFirestore.instance
+        .collection('user_wishlist')
+        .where('username', isEqualTo: username)
+        .where('imdbID', isEqualTo: widget.imdbID)
+        .limit(1);
+
+    final snapshot = await docRef.get();
+
     setState(() {
       isFavorite = !isFavorite;
     });
 
     if (isFavorite) {
-      WishlistPage.wishlist.add(widget.imdbID); // Add to wishlist
+      // Add to Firestore
+      if (snapshot.docs.isEmpty) {
+        await FirebaseFirestore.instance.collection('user_wishlist').add({
+          'username': username,
+          'imdbID': widget.imdbID,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Added to Wishlist')),
+      );
     } else {
-      WishlistPage.wishlist.remove(widget.imdbID); // Remove from wishlist
+      // Remove from Firestore
+      for (var doc in snapshot.docs) {
+        await FirebaseFirestore.instance
+            .collection('user_wishlist')
+            .doc(doc.id)
+            .delete();
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Removed from Wishlist')),
+      );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
           movieData?["Title"] ?? "Movie Details",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF60063F), // Dark magenta for AppBar
+        backgroundColor: const Color(0xFF60063F),
         elevation: 4,
         actions: [
           IconButton(
             icon: Icon(
-              isFavorite ? Icons.favorite : Icons.favorite_border, // Filled or outlined heart
+              isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: isFavorite ? Colors.red : Colors.white,
             ),
-            color: isFavorite ? Colors.red : Colors.white, // Red when favorited, black (default) when not
-            onPressed: () {
-              toggleWishlist(); // Toggle wishlist status
-            },
+            onPressed: toggleWishlist,
           ),
         ],
       ),
@@ -182,14 +296,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         ),
       )
           : Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              const Color(0xFF150F13), // Dark magenta at the top
-              const Color(0xFF752145), // Lighter pink/magenta transition
-              Colors.black, // Black at the bottom for a smooth fade
+              Color(0xFF150F13),
+              Color(0xFF752145),
+              Colors.black,
             ],
           ),
         ),
@@ -198,7 +312,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Poster Image Section
               Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
@@ -210,64 +323,85 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              if (movieData?["Ratings"] != null && movieData?["Ratings"].isNotEmpty)
+              if (movieData?["Ratings"] != null &&
+                  movieData?["Ratings"].isNotEmpty)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: movieData?["Ratings"].map<Widget>((rating) {
-                    return _ratingCard(rating["Source"], rating["Value"], Colors.orangeAccent);
-                  }).toList() ?? [],
+                  children: movieData?["Ratings"]
+                      .map<Widget>((rating) {
+                    return _ratingCard(
+                      rating["Source"],
+                      rating["Value"],
+                      Colors.orangeAccent,
+                    );
+                  }).toList() ??
+                      [],
                 ),
-
               const SizedBox(height: 20),
-
-              // Plot Section with distinct background
               Container(
                 padding: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
-                  color: Color(0xFFF8E2F1), // Light pinkish background for plot
+                  color: const Color(0xFFF8E2F1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: _plotSection(),
               ),
               const SizedBox(height: 20),
-
-              // BoxOffice Section
               _boxOfficeSection(movieData?["BoxOffice"]),
               const SizedBox(height: 20),
-
-              // Styled Information Sections with light text color
-              _styledInfoSection(
-                "Director",
-                movieData?["Director"],
-                textColor: Color(0xFFD8A7BB), // Light pinkish color
-              ),
-              _styledInfoSection(
-                "Actors",
-                movieData?["Actors"],
-                textColor: Color(0xFFD8A7BB), // Light pinkish color
-              ),
-              _styledInfoSection(
-                "Duration | Genre",
-                "${movieData?["Runtime"]} | ${movieData?["Genre"]}",
-                textColor: Color(0xFFD8A7BB), // Light pinkish color
-              ),
-              _styledInfoSection(
-                "Awards",
-                movieData?["Awards"],
-                textColor: Color(0xFFD8A7BB), // Light pinkish color
-              ),
-
+              _styledInfoSection("Director", movieData?["Director"]),
+              _styledInfoSection("Actors", movieData?["Actors"]),
+              _styledInfoSection("Duration | Genre",
+                  "${movieData?["Runtime"]} | ${movieData?["Genre"]}"),
+              _styledInfoSection("Awards", movieData?["Awards"]),
               const SizedBox(height: 20),
-
-              // Watch Trailer Button
               Center(
-                child: _customButton(
-                  Icons.play_arrow,
-                  "Watch Trailer",
-                  _watchTrailer,
-                  const Color(0xFF752145), // Lighter pink/magenta color for button
+                child: Column(
+                  children: [
+                    _customButton(
+                      Icons.play_arrow,
+                      "Watch Trailer",
+                      _watchTrailer,
+                      const Color(0xFF752145),
+                    ),
+                    const SizedBox(height: 12),
+                    _customButton(
+                      Icons.reviews,
+                      "See Reviews",
+                          () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MovieReviewsPage(imdbID: widget.imdbID, movieTitle: movieData?["Title"] ?? "Untitled Movie", ),
+                          ),
+                        );
+                      },
+                      const Color(0xFF45818E),
+                    ),
+                  ],
                 ),
               ),
+
+              // const Text("TMDb Reviews",
+              //     style: TextStyle(
+              //         color: Colors.white,
+              //         fontWeight: FontWeight.bold,
+              //         fontSize: 18)),
+              // const SizedBox(height: 8),
+              // tmdbReviews.isEmpty
+              //     ? const Padding(
+              //   padding: EdgeInsets.all(8.0),
+              //   child: Text(
+              //     "No reviews found.",
+              //     style: TextStyle(color: Colors.white70),
+              //   ),
+              // )
+              //     : Column(
+              //   children: tmdbReviews
+              //       .map((review) => ReviewTile(review: review))
+              //       .toList(),
+              // ),
+
             ],
           ),
         ),
@@ -275,40 +409,31 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     );
   }
 
-  Widget _styledInfoSection(String title, String? value, {Color textColor = const Color(0xFFD8A7BB)}) {
+  Widget _styledInfoSection(String title, String? value,
+      {Color textColor = const Color(0xFFD8A7BB)}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: textColor, // Use the passed textColor here
-            ),
-          ),
+          Text(title,
+              style:
+              TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
           const SizedBox(height: 4),
-          Text(
-            value ?? "Not Available",
-            style: TextStyle(
-              fontSize: 16,
-              color: textColor, // Use the passed textColor here as well
-            ),
-          ),
+          Text(value ?? "Not Available", style: TextStyle(fontSize: 16, color: textColor)),
         ],
       ),
     );
   }
 
-  Widget _customButton(IconData icon, String label, VoidCallback onPressed, Color color) {
+  Widget _customButton(
+      IconData icon, String label, VoidCallback onPressed, Color color) {
     return ElevatedButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, color: Colors.white),
       label: Text(label, style: const TextStyle(color: Colors.white)),
       style: ElevatedButton.styleFrom(
-        backgroundColor: color, // Use backgroundColor instead of primary
+        backgroundColor: color,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -332,9 +457,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
           ),
         ),
         const SizedBox(height: 5),
-        Text(platform.replaceAll("Internet Movie Database", "IMDb"),
-            style: const TextStyle(
-                fontWeight: FontWeight.w800, color: Color(0xFFD8A7BB))),
+        Text(
+          platform.replaceAll("Internet Movie Database", "IMDb"),
+          style:
+          const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFD8A7BB)),
+        ),
       ],
     )
         : const SizedBox();
@@ -345,13 +472,16 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         ? Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-          color: Colors.green[100], borderRadius: BorderRadius.circular(8)),
+        color: Colors.green[100],
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Row(
         children: [
           Icon(Icons.monetization_on, color: Colors.green[800]),
           const SizedBox(width: 10),
           Text("Box Office: $boxOffice",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              style: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     )
@@ -362,14 +492,133 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Plot",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
+        const Text("Plot",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 5),
-        Text(
-          movieData?["Plot"] ?? "No plot available",
-          style: const TextStyle(fontSize: 16),
+        Text(movieData?["Plot"] ?? "No plot available",
+            style: const TextStyle(fontSize: 16)),
+      ],
+    );
+  }
+}
+
+class ReviewTile extends StatelessWidget {
+  final Map<String, dynamic> review;
+
+  const ReviewTile({super.key, required this.review});
+
+  @override
+  Widget build(BuildContext context) {
+    final author = review['author_details']['username'] ?? 'Anonymous';
+    final content = review['content'] ?? '';
+    final rating = review['author_details']['rating']?.toString() ?? 'N/A';
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      child: ListTile(
+        title: Text(author, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(content),
+        trailing: Text(rating == 'N/A' ? '' : '⭐ $rating'),
+      ),
+    );
+  }
+}
+
+class UserReviewForm extends StatefulWidget {
+  final String imdbID;
+  final String movieTitle;
+
+  const UserReviewForm({super.key, required this.imdbID,required this.movieTitle,});
+
+  @override
+  State<UserReviewForm> createState() => _UserReviewFormState();
+}
+
+class _UserReviewFormState extends State<UserReviewForm> {
+  final _controller = TextEditingController();
+  double _rating = 3.0;
+  bool _isSubmitting = false;
+
+  Future<void> _submitReview() async {
+    if (_controller.text.trim().isEmpty) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("User not logged in");
+
+      await FirebaseFirestore.instance.collection('user_reviews').add({
+        'imdbID': widget.imdbID,
+        'userEmail': user.email,
+        'review': _controller.text.trim(),
+        'movieTitle': widget.movieTitle,
+        'rating': _rating,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      _controller.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Review submitted")),
+      );
+    } catch (e) {
+      debugPrint("Failed to submit review: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to submit review")),
+      );
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Write a review",
+            style: TextStyle(fontSize: 16, color: Colors.white)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _controller,
+          maxLines: 3,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white10,
+            hintText: "Type your review here...",
+            hintStyle: const TextStyle(color: Colors.white60),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            const Text("Rating:",
+                style: TextStyle(color: Colors.white, fontSize: 16)),
+            Slider(
+              value: _rating,
+              onChanged: (val) => setState(() => _rating = val),
+              min: 0,
+              max: 10,
+              divisions: 20,
+              label: _rating.toStringAsFixed(1),
+              activeColor: Colors.amber,
+            ),
+          ],
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: ElevatedButton.icon(
+            onPressed: _isSubmitting ? null : _submitReview,
+            icon: const Icon(Icons.send),
+            label: const Text("Submit"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF752145),
+            ),
+          ),
         ),
       ],
     );

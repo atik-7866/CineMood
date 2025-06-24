@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -156,13 +157,19 @@ class _RegisterationViewState extends State<RegisterationView> {
                         password: password,
                       );
                       final user = FirebaseAuth.instance.currentUser;
-
+                      await user?.sendEmailVerification();
                       if (user != null) {
-                        await user.sendEmailVerification();
-                        Navigator.of(context).pushNamed(verifyEmailRoute);
-                      } else {
-                        showErrorDialog(context, "Error: User could not be created.");
+                        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+                          'username': email.split('@').first,
+                          'email': email,
+                          'profilePic': '', // Optional default
+                        });
                       }
+
+
+                      await FirebaseAuth.instance.signOut(); // Sign out immediately after sending verification
+                      Navigator.of(context).pushNamed(verifyEmailRoute);
+
                     } on FirebaseAuthException catch (e) {
                       if (e.code == 'weak-password') {
                         showErrorDialog(context, "Weak password. Please try again.");
