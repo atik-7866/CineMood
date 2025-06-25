@@ -2,6 +2,8 @@
 
 **CineMood** is a cross-platform movie discovery and review app built using **Flutter** and **Firebase**. It allows users to browse movies by category, search using text or voice, submit and manage reviews, and maintain a personal wishlist. Authenticated users can log in via email or Google, and enjoy a smooth experience with features like swipe-based movie navigation and real-time username syncing.
 
+Live :  https://registeration-988d7.web.app
+
 ---
 
 ## 🚀 Features
