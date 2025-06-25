@@ -32,11 +32,12 @@
 - View your own reviews in **My Reviews** section
 - Only verified users can write reviews
 
-### ☁️ Backend (Firebase Integration)
-- Firebase **Authentication** (Email/Password)
-- Firebase **Firestore** (for storing reviews)
-- Firebase **Storage** (optional for user media or movie posters)
-- Firebase **Hosting** (for web version deployment)
+## ☁️ Backend & Database (Firebase)
+
+- 🔐 **Firebase Authentication** – Email/Password sign-in with email verification  
+- 🗂️ **Cloud Firestore (NoSQL Database)** – Stores structured data like reviews, user info, timestamps  
+- 🗄️ **Firebase Storage** – Stores media files such as movie posters or profile images  
+- 🌐 **Firebase Hosting** – Used to deploy the web version of the app
 
 ---
 
