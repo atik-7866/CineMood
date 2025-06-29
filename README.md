@@ -73,15 +73,9 @@ Live :  https://registeration-988d7.web.app
 
 ---
 
-## 📜 License
-
-Licensed under the [MIT License](LICENSE)
-
----
-
 ## 🙌 Contributions
 
-This app is part of a personal/portfolio project.  
+This app is part of a personal project.  
 Issues and suggestions are welcome!
 
 ---
